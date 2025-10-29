@@ -11,7 +11,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 
 add_executable(${EXECUTABLE_NAME}
-    main.cpp
+        main.cpp
+        Game.cpp
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE SDL3::SDL3)
