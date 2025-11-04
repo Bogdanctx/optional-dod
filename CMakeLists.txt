@@ -13,6 +13,7 @@ add_subdirectory(vendored/SDL EXCLUDE_FROM_ALL)
 add_executable(${EXECUTABLE_NAME}
         main.cpp
         Game.cpp
+        FloatingObject.cpp
 )
 
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE SDL3::SDL3)

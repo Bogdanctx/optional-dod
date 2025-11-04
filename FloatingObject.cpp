@@ -1,0 +1,67 @@
+#include "FloatingObject.h"
+#include "utils.h"
+
+float FloatingObject::speed_multiplier = 1.0f;
+
+FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int id) {
+    m_texture = texture;
+    m_renderer = renderer;
+    m_radius = Utils::g_BALL_DIAMETER / 2.0f;
+
+    m_direction = rand() % 360;
+    float random_x = rand() % (Utils::g_WINDOW_WIDTH - 100) + 100;
+    float random_y = rand() % (Utils::g_WINDOW_HEIGHT - 100) + 100;
+    m_position = SDL_FPoint{random_x, random_y};
+
+    float radians = m_direction * M_PI / 180.0f;
+
+    m_velocity = SDL_FPoint{cosf(radians) * m_speed, sinf(radians) * m_speed};
+    m_id = id;
+}
+
+float FloatingObject::get_radius() {
+    return m_radius;
+}
+
+
+void FloatingObject::increase_speed() {
+    speed_multiplier += 0.1f;
+}
+
+void FloatingObject::decrease_speed() {
+    speed_multiplier -= 0.1f;
+}
+
+
+void FloatingObject::update(float deltaSpeed) {
+    m_position.x += m_velocity.x * deltaSpeed * speed_multiplier;
+    m_position.y += m_velocity.y * deltaSpeed * speed_multiplier;
+
+    if (m_position.x - m_radius < 0.0f) {
+        m_position.x = m_radius;
+        m_velocity.x *= -1.0f;
+    }
+    else if (m_position.x + m_radius > (float) Utils::g_WINDOW_WIDTH) {
+        m_position.x = (float) Utils::g_WINDOW_WIDTH - m_radius;
+        m_velocity.x *= -1.0f;
+    }
+
+    if (m_position.y - m_radius < 0.0f) {
+        m_position.y = m_radius;
+        m_velocity.y *= -1.0f;
+    }
+    else if (m_position.y + m_radius > (float) Utils::g_WINDOW_HEIGHT) {
+        m_position.y = (float) Utils::g_WINDOW_HEIGHT - m_radius;
+        m_velocity.y *= -1.0f;
+    }
+}
+
+void FloatingObject::render() {
+    SDL_FRect destRect = {
+        m_position.x - m_radius,
+        m_position.y - m_radius,
+        Utils::g_BALL_DIAMETER,
+        Utils::g_BALL_DIAMETER
+    };
+    SDL_RenderTexture(m_renderer, m_texture, NULL, &destRect);
+}
