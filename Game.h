@@ -1,5 +1,6 @@
 #include <vector>
 #include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include "FloatingObject.h"
 #include <cmath>
 
@@ -26,17 +27,21 @@ public:
     void run_loop();
 private:
     void process_input();
-    void update();
+    void update(float deltaTime);
     void process_output();
 
     void check_collisions();
     void add_object();
+    void print_text(const char* text, SDL_FPoint coords);
 
     SDL_Window* window = NULL;
     SDL_Renderer* renderer = NULL;
     SDL_Texture* texture = NULL;
+    TTF_Font* roboto_font = NULL;
     bool m_isRunning = false;
+    float m_fps = 0;
+    float m_lastDelta = 0.0f;
 
     std::vector<FloatingObject*> m_objects;
-    SDL_FRect dummy_rect = { 100, 100, 200, 100 };
+    SDL_FRect dummy_rect = { 0, 0, 200, 100 };
 };

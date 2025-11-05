@@ -11,6 +11,7 @@ Game::~Game() {
 
 bool Game::init() {
     SDL_Init(SDL_INIT_VIDEO);
+    TTF_Init();
     window = SDL_CreateWindow("Proiect DOD", Utils::g_WINDOW_WIDTH, Utils::g_WINDOW_HEIGHT, SDL_WINDOW_OPENGL);
 
     if (window == NULL) {
@@ -27,18 +28,38 @@ bool Game::init() {
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_DestroySurface(surface);
 
+    roboto_font = TTF_OpenFont("Roboto.ttf", 20);
     m_isRunning = true;
 
     return true;
 }
 
+void Game::print_text(const char* text, SDL_FPoint coords) {
+    SDL_Color white = {255, 255, 255, 255};
+    SDL_Surface* surface = TTF_RenderText_Solid(roboto_font, text, strlen(text), white);
+    SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FRect dest = { coords.x, coords.y, (float)surface->w, (float)surface->h};
+
+    SDL_RenderTexture(renderer, text_texture, NULL, &dest);
+
+    SDL_DestroyTexture(text_texture);
+    SDL_DestroySurface(surface);
+}
 
 void Game::run_loop() {
     while (m_isRunning) {
+        Uint64 frameStart = SDL_GetPerformanceCounter();
+
         process_input();
-        update();
+        update(m_lastDelta);
         process_output();
+
+        Uint64 frameEnd = SDL_GetPerformanceCounter();
+        double deltaTime = (double)(frameEnd - frameStart) / SDL_GetPerformanceFrequency();
+        m_fps = 1.0f / deltaTime;
+        m_lastDelta = (float) deltaTime;
     }
+
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
@@ -170,12 +191,7 @@ void Game::process_input() {
     }
 }
 
-void Game::update() {
-    static Uint64 lastTime = SDL_GetTicks();
-    Uint64 current = SDL_GetTicks();
-    float deltaTime = (current - lastTime) / 1000.0f;
-    lastTime = current;
-
+void Game::update(float deltaTime) {
     for (int i = 0; i < m_objects.size(); i++) {
         m_objects[i]->update(deltaTime);
     }
@@ -187,12 +203,17 @@ void Game::process_output() {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
 
-    SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
-    SDL_RenderFillRect(renderer, &dummy_rect);
-
+    // prima data dau render la obiecte
     for (int i = 0; i < m_objects.size(); i++) {
         m_objects[i]->render();
     }
+
+    // vreau ca dreptunghiul sa fie mereu deasupra
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, SDL_ALPHA_OPAQUE);
+    SDL_RenderFillRect(renderer, &dummy_rect);
+
+    const char* fps_text = std::string("FPS " + std::to_string(m_fps)).c_str();
+    print_text(fps_text, {0.f, 0.f});
 
     SDL_RenderPresent(renderer);
 }
