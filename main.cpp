@@ -1,6 +1,10 @@
 #include "Game.h"
 #include <random>
+#include <ctime>
 #include "utils.h"
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
 
 int Utils::g_WINDOW_WIDTH = 1200;
 int Utils::g_WINDOW_HEIGHT = 800;

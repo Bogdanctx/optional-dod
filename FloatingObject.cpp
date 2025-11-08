@@ -23,16 +23,6 @@ float FloatingObject::get_radius() {
     return m_radius;
 }
 
-
-void FloatingObject::increase_speed() {
-    speed_multiplier += 0.1f;
-}
-
-void FloatingObject::decrease_speed() {
-    speed_multiplier -= 0.1f;
-}
-
-
 void FloatingObject::update(float deltaSpeed) {
     m_position.x += m_velocity.x * deltaSpeed * speed_multiplier;
     m_position.y += m_velocity.y * deltaSpeed * speed_multiplier;
