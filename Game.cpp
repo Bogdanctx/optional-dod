@@ -239,10 +239,10 @@ void Game::remove_objects(int quantity) {
     }
 }
 
-void Game::m_floatingObject_update(float deltaSpeed, int i) {
+void Game::m_floatingObject_update(float deltaTime, int i) {
     // actualizez pozitia in functie de viteza, deltaTime si speed_multiplier (cat de repede se misca simularea)
-    m_floatingObject_position[i].x += m_floatingObject_velocity[i].x * deltaSpeed * FloatingObject::speed_multiplier;
-    m_floatingObject_position[i].y += m_floatingObject_velocity[i].y * deltaSpeed * FloatingObject::speed_multiplier;
+    m_floatingObject_position[i].x += m_floatingObject_velocity[i].x * deltaTime * FloatingObject::speed_multiplier;
+    m_floatingObject_position[i].y += m_floatingObject_velocity[i].y * deltaTime * FloatingObject::speed_multiplier;
 
     // verific coliziunea cu marginile ferestrei
     if (m_floatingObject_position[i].x - m_floatingObject_radius < 0.0f) { // coliziune cu marginea stanga
