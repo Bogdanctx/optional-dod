@@ -4,8 +4,8 @@
 #include "utils.h"
 #include "imgui.h"
 
-int Utils::g_WINDOW_WIDTH = 1200;
-int Utils::g_WINDOW_HEIGHT = 800;
+int Utils::g_WINDOW_WIDTH = 1600;
+int Utils::g_WINDOW_HEIGHT = 1000;
 float Utils::g_BALL_DIAMETER = 64;
 
 int main() {
