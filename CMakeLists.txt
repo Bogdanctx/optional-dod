@@ -11,7 +11,7 @@ set(SDLTTF_PLUTOSVG OFF)
 set(SDLTTF_HARFBUZZ OFF)
 
 add_subdirectory(vendored/SDL3-3.2.26 EXCLUDE_FROM_ALL)
-add_subdirectory(vendored/SDL3_ttf-3.1.0 EXCLUDE_FROM_ALL)
+add_subdirectory(vendored/SDL3_ttf-3.2.2 EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/SDL3_image-3.2.4 EXCLUDE_FROM_ALL)
 
 ### init imgui

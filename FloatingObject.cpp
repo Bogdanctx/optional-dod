@@ -9,8 +9,8 @@ FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int
     m_radius = Utils::g_BALL_DIAMETER / 2.0f;
 
     m_direction = rand() % 360;
-    float random_x = rand() % (Utils::g_WINDOW_WIDTH - 100) + 100;
-    float random_y = rand() % (Utils::g_WINDOW_HEIGHT - 100) + 100;
+    float random_x = rand() % (Utils::g_WINDOW_WIDTH - 100) + 100; // preventie spawn initial langa margini
+    float random_y = rand() % (Utils::g_WINDOW_HEIGHT - 100) + 100; // preventie spawn initial langa margini
     m_position = SDL_FPoint{random_x, random_y};
 
     float radians = m_direction * M_PI / 180.0f;
@@ -24,9 +24,11 @@ float FloatingObject::get_radius() {
 }
 
 void FloatingObject::update(float deltaSpeed) {
+    // actualizez pozitia in functie de viteza, deltaTime si speed_multiplier (cat de repede se misca simularea)
     m_position.x += m_velocity.x * deltaSpeed * speed_multiplier;
     m_position.y += m_velocity.y * deltaSpeed * speed_multiplier;
 
+    // verific coliziunea cu marginile ferestrei
     if (m_position.x - m_radius < 0.0f) {
         m_position.x = m_radius;
         m_velocity.x *= -1.0f;
@@ -44,6 +46,7 @@ void FloatingObject::update(float deltaSpeed) {
         m_position.y = (float) Utils::g_WINDOW_HEIGHT - m_radius;
         m_velocity.y *= -1.0f;
     }
+    ///////////////////////////////////////////////
 }
 
 void FloatingObject::render() {

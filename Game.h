@@ -5,6 +5,9 @@
 #include <cmath>
 #include "utils.h"
 #include "imgui.h"
+#include "backends/imgui_impl_sdl3.h"
+#include "backends/imgui_impl_sdlrenderer3.h"
+
 
 /*
  Integrare SDL (Done)
@@ -43,6 +46,7 @@ private:
     void process_input();
     void update(float deltaTime);
     void process_output();
+    void process_imgui_output();
 
     void check_collisions();
     void dod_check_collisions();
