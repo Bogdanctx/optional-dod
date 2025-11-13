@@ -90,7 +90,7 @@ bool Game::circles_overlap(FloatingObject* a_fo, FloatingObject* b_fo) {
 
     // Doua cercuri se intersecteaza daca distanta dintre ele este mai mica sau egala cu patratul sumei razelor
     return dx + dy <= sum_radius * sum_radius;
-}deltaTime
+}
 
 void Game::dod_check_collisions() {
     for (int i = 0; i < m_floatingObject_position.size(); i++) {
