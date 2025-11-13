@@ -74,7 +74,7 @@ bool Game::circles_overlap(int id1, int id2) {
     float dy = (b1.y - b2.y) * (b1.y - b2.y); // calculez patratul distantei pe axa y
     float sum_radius = m_floatingObject_radius + m_floatingObject_radius; // suma razelor cercurilor
 
-    // Doua cercuri se intersecteaza daca distanta dintre ele este mai mica sau egala cu suma razelor
+    // Doua cercuri se intersecteaza daca distanta dintre ele este mai mica sau egala cu patratul sumei razelor
     return dx + dy <= sum_radius * sum_radius;
 }
 
@@ -88,9 +88,9 @@ bool Game::circles_overlap(FloatingObject* a_fo, FloatingObject* b_fo) {
     float dy = (b1.y - b2.y) * (b1.y - b2.y); // calculez patratul distantei pe axa y
     float sum_radius = a_fo->get_radius() + b_fo->get_radius(); // suma razelor cercurilor
 
-    // Doua cercuri se intersecteaza daca distanta dintre ele este mai mica sau egala cu suma razelor
+    // Doua cercuri se intersecteaza daca distanta dintre ele este mai mica sau egala cu patratul sumei razelor
     return dx + dy <= sum_radius * sum_radius;
-}
+}deltaTime
 
 void Game::dod_check_collisions() {
     for (int i = 0; i < m_floatingObject_position.size(); i++) {
