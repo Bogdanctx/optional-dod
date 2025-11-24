@@ -51,10 +51,14 @@ private:
     void check_collisions();
     void dod_check_collisions();
 
+    void sync_state(bool state);
+    int m_previous_state = 0; // 0 - oop, 1 - dod
+
+
     void add_objects(int quantity);
     void remove_objects(int quantity);
 
-    bool circles_overlap(int id1, int id2);
+    bool dod_circles_overlap(float b1_x, float b1_y, float b2_x, float b2_y);
     bool circles_overlap(FloatingObject* a_fo, FloatingObject* b_fo);
 
     SDL_Window* window = NULL;
@@ -65,21 +69,32 @@ private:
     float m_lastDelta = 0.0f;
     int m_spawn_quantity = 10;
     int m_use_dod = 0;
+    bool m_apply_collisions = true;
+
+    const int MAX_ENTITIES = 100000;
 
     std::vector<FloatingObject*> m_objects;
-    SDL_FRect dummy_rect = { 0, 0, 200, 100 };
 
+    float update_elapsed_time = 0.0f;
+    float process_input_elapsed_time = 0.0f;
+    float process_output_elapsed_time = 0.0f;
 
+    void start_counter();
+    float end_counter();
+    static Uint64 start;
 
 
     // Floating objects
     std::vector<int> m_floatingObject_id;
-    std::vector<SDL_FPoint> m_floatingObject_position;
-    std::vector<SDL_FPoint> m_floatingObject_velocity;
+    // std::vector<SDL_FPoint> m_floatingObject_position;
+    std::vector<float> m_floatingObjects_position_x;
+    std::vector<float> m_floatingObjects_position_y;
+
+    std::vector<float> m_floatingObjects_velocity_x;
+    std::vector<float> m_floatingObjects_velocity_y;
+
+    // std::vector<SDL_FPoint> m_floatingObject_velocity;
     std::vector<float> m_floatingObject_direction;
     float m_floatingObject_radius = Utils::g_BALL_DIAMETER / 2.0f;
-
-    void m_floatingObject_update(float deltaSpeed, int i);
-    void m_floatingObject_render(int i);
     //////////////////////
 };

@@ -6,7 +6,7 @@
 
 int Utils::g_WINDOW_WIDTH = 1600;
 int Utils::g_WINDOW_HEIGHT = 1000;
-float Utils::g_BALL_DIAMETER = 64;
+float Utils::g_BALL_DIAMETER = 16;
 
 int main() {
     srand(time(nullptr));
