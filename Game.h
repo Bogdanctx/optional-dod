@@ -85,8 +85,7 @@ private:
 
 
     // Floating objects
-    std::vector<int> m_floatingObject_id;
-    // std::vector<SDL_FPoint> m_floatingObject_position;
+    int m_cntfloatingObjects = 0;
     std::vector<float> m_floatingObjects_position_x;
     std::vector<float> m_floatingObjects_position_y;
 

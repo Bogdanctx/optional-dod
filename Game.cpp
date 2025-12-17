@@ -114,7 +114,7 @@ bool Game::circles_overlap(FloatingObject* a_fo, FloatingObject* b_fo) {
 }
 
 void Game::dod_check_collisions() {
-    int number_of_objects = m_floatingObject_id.size();
+    int number_of_objects = m_floatingObjects_position_x.size();
 
     for (int i = 0; i < number_of_objects; i++) {
         for (int j = i + 1; j < number_of_objects; j++) {
@@ -256,7 +256,7 @@ void Game::sync_state(bool state) {
 
 void Game::add_objects(int quantity) {
     for (int i = 0; i < quantity; i++) {
-        FloatingObject* obj = new FloatingObject(texture, renderer, m_objects.size() + 1);
+        FloatingObject* obj = new FloatingObject(texture, renderer);
         m_objects.push_back(obj);
 
         m_floatingObject_direction.push_back(obj->m_direction);
@@ -266,8 +266,6 @@ void Game::add_objects(int quantity) {
 
         m_floatingObjects_velocity_x.push_back(obj->m_velocity.x);
         m_floatingObjects_velocity_y.push_back(obj->m_velocity.y);
-
-        m_floatingObject_id.push_back(obj->m_id);
     }
 }
 
@@ -275,8 +273,6 @@ void Game::remove_objects(int quantity) {
     for (int i = 0; i < quantity && !m_objects.empty(); i++) {
         delete m_objects.back();
         m_objects.pop_back();
-
-        m_floatingObject_id.pop_back();
 
         m_floatingObjects_position_x.pop_back();
         m_floatingObjects_position_y.pop_back();

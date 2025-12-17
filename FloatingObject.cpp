@@ -3,7 +3,7 @@
 
 float FloatingObject::speed_multiplier = 1.0f;
 
-FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int id) {
+FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer) {
     m_texture = texture;
     m_renderer = renderer;
     m_radius = Utils::g_BALL_DIAMETER / 2.0f;
@@ -16,7 +16,6 @@ FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int
     float radians = m_direction * M_PI / 180.0f;
 
     m_velocity = SDL_FPoint{cosf(radians) * m_speed, sinf(radians) * m_speed};
-    m_id = id;
 }
 
 float FloatingObject::get_radius() {
