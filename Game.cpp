@@ -125,15 +125,6 @@ void Game::dod_check_collisions() {
 
             if (dod_circles_overlap(b1_pos_x, b1_pos_y, b2_pos_x, b2_pos_y)) {
                 float distance = sqrtf((b1_pos_x - b2_pos_x) * (b1_pos_x - b2_pos_x) + (b1_pos_y - b2_pos_y) * (b1_pos_y - b2_pos_y));
-                if (distance < 0.00001f) { // daca se spawneaza mingile una peste alta o dau pe una intr-o parte
-                    m_floatingObjects_position_x[i] += 0.1f; // mut putin mingea
-
-                    b1_pos_x = m_floatingObjects_position_x[i];
-                    b1_pos_y = m_floatingObjects_position_y[i];
-
-                    distance = sqrtf((b1_pos_x - b2_pos_x) * (b1_pos_x - b2_pos_x) + (b1_pos_y - b2_pos_y) * (b1_pos_y - b2_pos_y)); // recalculez distanta
-                }
-
                 float overlap = 0.5f * (m_floatingObject_radius + m_floatingObject_radius - distance);
 
                 // normala (in ce directie se vor impinge cercurile)
@@ -196,12 +187,6 @@ void Game::check_collisions() {
                 SDL_FPoint b2_pos = b2->m_position;
 
                 float distance = sqrtf((b1_pos.x - b2_pos.x) * (b1_pos.x - b2_pos.x) + (b1_pos.y - b2_pos.y) * (b1_pos.y - b2_pos.y));
-                if (distance < 0.00001f) { // daca se spawneaza mingile una peste alta o dau pe una intr-o parte
-                    b1->m_position.x += 0.1f; // mut putin mingea
-                    b1_pos = b1->m_position; // recalculez pozitia
-                    distance = sqrtf((b1_pos.x - b2_pos.x) * (b1_pos.x - b2_pos.x) + (b1_pos.y - b2_pos.y) * (b1_pos.y - b2_pos.y)); // recalculez distanta
-                }
-
                 float overlap = 0.5f * (b1->get_radius() + b2->get_radius() - distance);
 
                 // normala (in ce directie se vor impinge cercurile)

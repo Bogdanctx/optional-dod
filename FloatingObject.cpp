@@ -11,7 +11,7 @@ FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int
     m_direction = rand() % 360;
     float random_x = rand() % (Utils::g_WINDOW_WIDTH - (int) Utils::g_BALL_DIAMETER) + Utils::g_BALL_DIAMETER; // preventie spawn initial langa margini
     float random_y = rand() % (Utils::g_WINDOW_HEIGHT - (int) Utils::g_BALL_DIAMETER) + Utils::g_BALL_DIAMETER; // preventie spawn initial langa margini
-    m_position = SDL_FPoint{random_x, random_y};
+    m_position = SDL_FPoint{random_x + m_radius, random_y + m_radius}; // pun originea in centru
 
     float radians = m_direction * M_PI / 180.0f;
 
