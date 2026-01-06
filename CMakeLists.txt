@@ -10,23 +10,23 @@ set(SDLTTF_VENDORED ON)
 set(SDLTTF_PLUTOSVG OFF)
 set(SDLTTF_HARFBUZZ OFF)
 
-add_subdirectory(vendored/SDL3-3.2.26 EXCLUDE_FROM_ALL)
+add_subdirectory(vendored/SDL3-3.4.0 EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/SDL3_ttf-3.2.2 EXCLUDE_FROM_ALL)
-add_subdirectory(vendored/SDL3_image-3.2.4 EXCLUDE_FROM_ALL)
+add_subdirectory(vendored/SDL3_image-3.2.6 EXCLUDE_FROM_ALL)
 
 ### init imgui
 add_library(imgui
-        vendored/imgui-1.92.4/imgui.cpp
-        vendored/imgui-1.92.4/imgui_draw.cpp
-        vendored/imgui-1.92.4/imgui_tables.cpp
-        vendored/imgui-1.92.4/imgui_widgets.cpp
-        vendored/imgui-1.92.4/imgui_demo.cpp
-        vendored/imgui-1.92.4/backends/imgui_impl_sdl3.cpp
-        vendored/imgui-1.92.4/backends/imgui_impl_sdlrenderer3.cpp
+        vendored/imgui-1.92.5/imgui.cpp
+        vendored/imgui-1.92.5/imgui_draw.cpp
+        vendored/imgui-1.92.5/imgui_tables.cpp
+        vendored/imgui-1.92.5/imgui_widgets.cpp
+        vendored/imgui-1.92.5/imgui_demo.cpp
+        vendored/imgui-1.92.5/backends/imgui_impl_sdl3.cpp
+        vendored/imgui-1.92.5/backends/imgui_impl_sdlrenderer3.cpp
 )
 target_include_directories(imgui PUBLIC
-        vendored/imgui-1.92.4
-        vendored/imgui-1.92.4/backends
+        vendored/imgui-1.92.5
+        vendored/imgui-1.92.5/backends
 )
 target_link_libraries(imgui PRIVATE SDL3::SDL3)
 ####################

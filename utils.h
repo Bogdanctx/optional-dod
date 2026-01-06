@@ -4,7 +4,7 @@
 struct Utils {
     static int g_WINDOW_WIDTH;
     static int g_WINDOW_HEIGHT;
-    static float g_BALL_DIAMETER;
+    static int g_BALL_DIAMETER;
 };
 
 #endif
