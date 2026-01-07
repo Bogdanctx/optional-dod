@@ -514,6 +514,12 @@ void Game::compute_memory_usage() {
 
 
 void Game::update(float deltaTime) {
+    m_floatingObject_radius = Utils::g_BALL_DIAMETER / 2.0f;
+
+    for (int i = 0; i < m_objects.size(); i++) {
+        m_objects[i]->m_radius = m_floatingObject_radius;
+    }
+
     compute_memory_usage();
 
     if (m_use_dod) {
@@ -591,8 +597,9 @@ void Game::process_imgui_output() {
     ImGui::Separator();
     ImGui::SliderFloat("Speed Multiplier", &FloatingObject::speed_multiplier, 0.1f, 50.0f);
     ImGui::Separator();
-    ImGui::Separator();
     ImGui::SliderInt("Spawned objects", &m_spawn_quantity, 0, MAX_ENTITIES);
+    ImGui::Separator();
+    ImGui::SliderInt("Balls diameter", &Utils::g_BALL_DIAMETER, 1, 50);
 
     ImGui::Separator();
     ImGui::Text("Render Mode:");
@@ -613,6 +620,16 @@ void Game::process_imgui_output() {
     ImGui::Text("Grid cell size");
 
     std::vector<int> divisors = {200, 50, 40, 25, 20, 10, 8, 5, 4, 2, 1};
+
+    if (GRID_CELL_SIZE <= Utils::g_BALL_DIAMETER) {
+        for (int i = divisors.size() - 1; i >= 0; i--) {
+            if (divisors[i] > Utils::g_BALL_DIAMETER) {
+                GRID_CELL_SIZE = divisors[i];
+                break;
+            }
+        }
+    }
+
     for (int divisor: divisors) {
         if (divisor > Utils::g_BALL_DIAMETER) {
             std::string d = std::to_string(divisor);

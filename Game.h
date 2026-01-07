@@ -95,7 +95,6 @@ private:
     std::vector<float> m_floatingObjects_velocity_x;
     std::vector<float> m_floatingObjects_velocity_y;
 
-    // std::vector<SDL_FPoint> m_floatingObject_velocity;
     std::vector<float> m_floatingObject_direction;
     float m_floatingObject_radius = Utils::g_BALL_DIAMETER / 2.0f;
     //////////////////////
