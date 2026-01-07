@@ -104,7 +104,7 @@ void Game::update_grid() {
     }
 }
 
-
+// Coliziuni pt DOD
 void Game::dod_check_collisions_grid() {
     int numberOfObjects = m_floatingObjects_id.size();
 
@@ -173,7 +173,7 @@ void Game::dod_check_collisions_grid() {
 }
 
 
-
+// Coliziuni pentru modul OOP
 void Game::check_collisions_grid() {
     update_grid();
 
@@ -295,7 +295,7 @@ void Game::dod_check_naive_collisions() {
 }
 
 
-
+// pt oop
 void Game::check_naive_collisions() {
 
     if (m_use_dod) {
@@ -567,7 +567,7 @@ void Game::update(float deltaTime) {
     }
     ///////
 
-    if (m_previous_state != m_use_dod) {
+    if (m_previous_state != m_use_dod) { // daca am schimbat intre oop sau dod trebuie sa sincronizez mingile
         sync_state(m_use_dod);
         m_previous_state = m_use_dod;
     }
@@ -596,9 +596,9 @@ void Game::process_imgui_output() {
 
     ImGui::Separator();
     ImGui::Text("Render Mode:");
-    ImGui::RadioButton("OOP", &m_use_dod, 0); // Sets m_use_dod to false
+    ImGui::RadioButton("OOP", &m_use_dod, 0);
     ImGui::SameLine();
-    ImGui::RadioButton("DOD", &m_use_dod, 1);  // Sets m_use_dod to true
+    ImGui::RadioButton("DOD", &m_use_dod, 1);
 
     ImGui::Separator();
     ImGui::Checkbox("Collisions", &m_apply_collisions);
@@ -634,13 +634,15 @@ void Game::process_output() {
     if (m_drawGrid) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-        // Draw Vertical Lines
+        // Ca sa desenez fiecare celula prima data trasez linii verticale si dupa linii orizontale
+        // linii verticale
+
         for (int i = 0; i <= m_gridColumns; i++) {
             float x = (float)(i * GRID_CELL_SIZE);
             SDL_RenderLine(renderer, x, 0.0f, x, (float)Utils::g_WINDOW_HEIGHT);
         }
 
-        // Draw Horizontal Lines
+        // liniile orizontale
         for (int i = 0; i <= m_gridRows; i++) {
             float y = (float)(i * GRID_CELL_SIZE);
             SDL_RenderLine(renderer, 0.0f, y, (float)Utils::g_WINDOW_WIDTH, y);
@@ -651,8 +653,8 @@ void Game::process_output() {
     if (m_use_dod) {
         for (int i = 0; i < m_objects.size(); i++) {
             SDL_FRect destRect = {
-                m_floatingObjects_position_x[i] - m_floatingObject_radius,
-                m_floatingObjects_position_y[i] - m_floatingObject_radius,
+                m_floatingObjects_position_x[i] - m_floatingObject_radius, // scad radius pentru ca originea este in centru
+                m_floatingObjects_position_y[i] - m_floatingObject_radius, // scad radius pentru ca originea este in centru
                 (float) Utils::g_BALL_DIAMETER,
                 (float) Utils::g_BALL_DIAMETER
             };

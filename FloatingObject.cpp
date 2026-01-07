@@ -50,8 +50,8 @@ void FloatingObject::render() {
     SDL_FRect destRect = {
         m_position.x - m_radius,
         m_position.y - m_radius,
-        Utils::g_BALL_DIAMETER,
-        Utils::g_BALL_DIAMETER
+        (float) Utils::g_BALL_DIAMETER,
+        (float) Utils::g_BALL_DIAMETER
     };
     SDL_RenderTexture(m_renderer, m_texture, NULL, &destRect);
 }
