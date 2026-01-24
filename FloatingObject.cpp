@@ -1,10 +1,10 @@
 #include "FloatingObject.h"
+
+#include <utility>
 #include "constants.h"
 
-float FloatingObject::speed_multiplier = 1.0f;
-
-FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int id) 
-    : m_texture(texture), m_renderer(renderer), m_id(id)
+FloatingObject::FloatingObject(std::vector<SDL_Texture*> textures, SDL_Renderer *renderer, int id, int status)
+    : m_textures(std::move(textures)), m_renderer(renderer), m_id(id), m_status(status)
 {
     m_radius = Constants::g_BALL_DIAMETER / 2.0f;
     m_direction = rand() % 360;
@@ -19,10 +19,8 @@ FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int
 }
 
 void FloatingObject::update(float deltaTime) {
-    m_velocity.y += Constants::g_GRAVITY * deltaTime;
-
-    m_position.x += m_velocity.x * deltaTime;
-    m_position.y += m_velocity.y * deltaTime;
+    m_position.x += m_velocity.x * deltaTime * Constants::g_SIMULATION_SPEED;
+    m_position.y += m_velocity.y * deltaTime * Constants::g_SIMULATION_SPEED;
 }
 
 void FloatingObject::render() {
@@ -32,5 +30,5 @@ void FloatingObject::render() {
         (float) Constants::g_BALL_DIAMETER,
         (float) Constants::g_BALL_DIAMETER
     };
-    SDL_RenderTexture(m_renderer, m_texture, NULL, &destRect);
+    SDL_RenderTexture(m_renderer, m_textures[m_status], NULL, &destRect);
 }

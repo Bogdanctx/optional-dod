@@ -20,7 +20,11 @@ Game::~Game() {
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_DestroyTexture(texture);
+
+    for (SDL_Texture* t: state_textures) {
+        SDL_DestroyTexture(t);
+    }
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -46,15 +50,33 @@ bool Game::init() {
     ImGui_ImplSDLRenderer3_Init(renderer); // initializare imgui pentru renderer
 
 
-    SDL_Surface* surface = IMG_Load("ball.png"); // incarc textura
-    
-    if(!surface) return false;
+    SDL_Surface* cyan = IMG_Load("cyan.png"); // incarc textura
+    SDL_Surface* white = IMG_Load("white.png"); // incarc textura
+    SDL_Surface* red = IMG_Load("red.png"); // incarc textura
+    SDL_Surface* green = IMG_Load("green.png"); // incarc textura
 
-    texture = SDL_CreateTextureFromSurface(renderer, surface); // creez textura din surface
     
-    if(!texture) return false;
-    
-    SDL_DestroySurface(surface); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
+    if(!cyan || !white || !red || !green) return false;
+
+    state_textures.resize(NUMBER_OF_STATES);
+
+    SDL_Texture* healthy_texture = SDL_CreateTextureFromSurface(renderer, green); // creez textura din surface
+    SDL_Texture* sick_texture = SDL_CreateTextureFromSurface(renderer, red);
+    SDL_Texture* doctor_texture = SDL_CreateTextureFromSurface(renderer, white);
+    SDL_Texture* recovered_texture = SDL_CreateTextureFromSurface(renderer, cyan);
+
+    if(!healthy_texture || !sick_texture || !doctor_texture || !recovered_texture)
+        return false;
+
+    state_textures[STATUS::SICK] = sick_texture;
+    state_textures[STATUS::DOCTOR] = doctor_texture;
+    state_textures[STATUS::HEALTHY] = healthy_texture;
+    state_textures[STATUS::RECOVERED] = recovered_texture;
+
+    SDL_DestroySurface(cyan); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
+    SDL_DestroySurface(red); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
+    SDL_DestroySurface(green); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
+    SDL_DestroySurface(white); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
 
 
     m_grid = SpatialGrid(Constants::g_WINDOW_WIDTH, Constants::g_WINDOW_HEIGHT, m_gridCellSize);
@@ -97,6 +119,15 @@ void Game::process_input() {
                 m_isRunning = false;
                 break;
             }
+            case SDL_EVENT_KEY_DOWN: {
+                if (event.key.key == SDLK_ESCAPE) { // a apasat ESC
+                    m_isRunning = false;
+                }
+                else if (event.key.key == SDLK_R) { // a apasat R
+
+                }
+                break;
+            }
             default:
                 break;
         }
@@ -123,6 +154,29 @@ void Game::update(float deltaTime) {
 
     enforce_boundaries();
     calculate_memory();
+
+    if (m_use_dod) {
+        for (int i = 0; i < m_dod_status.size(); i++) {
+            if (m_dod_status[i] == STATUS::SICK) {
+                int fate = rand() % 10000;
+
+                if (fate < 1) {
+                    m_dod_status[i] = STATUS::RECOVERED; // 0.01% chance to recover
+                }
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < m_objects.size(); i++) {
+            if (m_objects[i]->m_status == STATUS::SICK) {
+                int fate = rand() % 10000;
+
+                if (fate < 1) {
+                    m_objects[i]->m_status = STATUS::RECOVERED;
+                }
+            }
+        }
+    }
 }
 
 void Game::render() {
@@ -154,7 +208,8 @@ void Game::render() {
                 (float) Constants::g_BALL_DIAMETER,
                 (float) Constants::g_BALL_DIAMETER
             };
-            SDL_RenderTexture(renderer, texture, NULL, &destRect);
+
+            SDL_RenderTexture(renderer, state_textures[m_dod_status[i]], NULL, &destRect);
         }
     }
     else {
@@ -171,43 +226,39 @@ void Game::render() {
 }
 
 void Game::apply_physics(float deltaTime) {
-    float dt = deltaTime * FloatingObject::speed_multiplier;
-
     if (m_use_dod) {
         for(int i = 0; i < m_dod_ids.size(); i++) {
-            m_dod_vel_y[i] += Constants::g_GRAVITY * dt;
-
-            m_dod_pos_x[i] += m_dod_vel_x[i] * dt;
-            m_dod_pos_y[i] += m_dod_vel_y[i] * dt;
+            m_dod_pos_x[i] += m_dod_vel_x[i] * deltaTime * Constants::g_SIMULATION_SPEED;
+            m_dod_pos_y[i] += m_dod_vel_y[i] * deltaTime * Constants::g_SIMULATION_SPEED;
         }
     }
     else {
-        for(int i = 0; i < m_objects.size(); i++) { 
-            m_objects[i]->update(dt);
+        for(int i = 0; i < m_objects.size(); i++) {
+            m_objects[i]->update(deltaTime);
         }
     }
 }
 
 void Game::check_screen_bounds(float& x, float& y, float& vx, float& vy) {
     float radius = Constants::g_BALL_DIAMETER / 2.0f;
-    float energy_loss = -0.5f;
-    
-    if (y + radius > Constants::g_WINDOW_HEIGHT) 
+    float energy_loss = -1.0f;
+
+    if (y + radius > Constants::g_WINDOW_HEIGHT)
     {
         y = Constants::g_WINDOW_HEIGHT - radius;
         vy *= energy_loss;
-    } 
+    }
     else if (y - radius < 0)
     {
         y = radius;
         vy *= energy_loss;
     }
-    
+
     if (x + radius > Constants::g_WINDOW_WIDTH) {
         x = Constants::g_WINDOW_WIDTH - radius;
         vx *= energy_loss;
-    } 
-    else if (x - radius < 0) 
+    }
+    else if (x - radius < 0)
     {
         x = radius;
         vx *= energy_loss;
@@ -232,6 +283,72 @@ void Game::enforce_boundaries() {
     }
 }
 
+void Game::update_health_status(int i, int j) {
+    int odd = rand() % 100;
+
+    if (m_use_dod) {
+        if (m_dod_status[i] == STATUS::RECOVERED || m_dod_status[j] == STATUS::RECOVERED) return;
+
+        if (m_dod_status[i] == STATUS::DOCTOR && m_dod_status[j] == STATUS::SICK) {
+            if (odd < 1) {
+                m_dod_status[i] = STATUS::SICK;
+            }
+            else {
+                m_dod_status[j] = STATUS::HEALTHY;
+            }
+        }
+        else if (m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::DOCTOR) {
+            if (odd < 1) {
+                m_dod_status[j] = STATUS::SICK;
+            }
+            else {
+                m_dod_status[i] = STATUS::HEALTHY;
+            }
+        }
+        else if (m_dod_status[i] == STATUS::HEALTHY && m_dod_status[j] == STATUS::SICK) {
+            if (odd < 75) m_dod_status[i] = STATUS::SICK;
+        }
+        else if (m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::HEALTHY) {
+            if (odd < 75) m_dod_status[j] = STATUS::SICK;
+        }
+    }
+    else {
+        FloatingObject* obj1 = m_objects[i];
+        FloatingObject* obj2 = m_objects[j];
+
+        if (obj1->m_status == STATUS::RECOVERED || obj2->m_status == STATUS::RECOVERED) return;
+
+        if (obj1->m_status == STATUS::DOCTOR && obj2->m_status == STATUS::SICK) {
+            if (odd < 1) {
+                obj1->m_status = STATUS::SICK;
+            }
+            else {
+                obj2->m_status = STATUS::HEALTHY;
+            }
+        }
+        else if (obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::DOCTOR) {
+            if (odd < 1) {
+                obj2->m_status = STATUS::SICK;
+            }
+            else {
+                obj1->m_status = STATUS::HEALTHY;
+            }
+        }
+        else if (obj1->m_status == STATUS::HEALTHY && obj2->m_status == STATUS::SICK) {
+            if (odd < 75) {
+                obj1->m_status = STATUS::SICK;
+            }
+        }
+        else if (obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::HEALTHY) {
+            if (odd < 75) {
+                obj2->m_status = STATUS::SICK;
+            }
+        }
+    }
+}
+
+
+
 void Game::optimized_resolve_collisions() {
     float radius = Constants::g_BALL_DIAMETER / 2.0f;
     int count = m_use_dod ? m_dod_ids.size() : m_objects.size();
@@ -246,8 +363,14 @@ void Game::optimized_resolve_collisions() {
     for (int i = 0; i < count; ++i) {
         float x1, y1;
         
-        if (m_use_dod) { x1 = m_dod_pos_x[i]; y1 = m_dod_pos_y[i]; }
-        else { x1 = m_objects[i]->m_position.x; y1 = m_objects[i]->m_position.y; }
+        if (m_use_dod) {
+            x1 = m_dod_pos_x[i];
+            y1 = m_dod_pos_y[i];
+        }
+        else {
+            x1 = m_objects[i]->m_position.x;
+            y1 = m_objects[i]->m_position.y;
+        }
 
         int col = (int)(x1 / m_gridCellSize);
         int row = (int)(y1 / m_gridCellSize);
@@ -259,26 +382,36 @@ void Game::optimized_resolve_collisions() {
                 for (int j : cell) {
                     if (j <= i) continue;
 
-                    if (m_use_dod) {
-                        if (MathUtils::circles_overlap(x1, y1, m_dod_pos_x[j], m_dod_pos_y[j], radius)) {
+                    if (m_use_dod)
+                    {
+                        if (MathUtils::circles_overlap(x1, y1, m_dod_pos_x[j], m_dod_pos_y[j], radius))
+                            {
                             MathUtils::resolve_elastic_collision(
                                 m_dod_pos_x[i], m_dod_pos_y[i], m_dod_vel_x[i], m_dod_vel_y[i],
                                 m_dod_pos_x[j], m_dod_pos_y[j], m_dod_vel_x[j], m_dod_vel_y[j],
                                 radius
                             );
 
+                            update_health_status(i, j);
+
                             x1 = m_dod_pos_x[i];
                             y1 = m_dod_pos_y[i];
                         }
-                    } else {
+                    }
+                    else {
                         FloatingObject* o1 = m_objects[i];
                         FloatingObject* o2 = m_objects[j];
-                        if (MathUtils::circles_overlap(o1->m_position.x, o1->m_position.y, o2->m_position.x, o2->m_position.y, radius)) {
+
+                        if (MathUtils::circles_overlap(o1->m_position.x, o1->m_position.y, o2->m_position.x, o2->m_position.y, radius))
+                        {
                             MathUtils::resolve_elastic_collision(
                                 o1->m_position.x, o1->m_position.y, o1->m_velocity.x, o1->m_velocity.y,
                                 o2->m_position.x, o2->m_position.y, o2->m_velocity.x, o2->m_velocity.y,
                                 radius
                             );
+
+                            update_health_status(i, j);
+
                             x1 = o1->m_position.x;
                             y1 = o1->m_position.y;
                         }
@@ -307,6 +440,8 @@ void Game::naive_resolve_collisions() {
 
                 if (MathUtils::circles_overlap(x1, y1, x2, y2, radius)) {
                     MathUtils::resolve_elastic_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
+
+                    update_health_status(i, j);
                 }
             }
         }
@@ -326,6 +461,7 @@ void Game::naive_resolve_collisions() {
 
                 if (MathUtils::circles_overlap(x1, y1, x2, y2, radius)) {
                     MathUtils::resolve_elastic_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
+                    update_health_status(i, j);
                 }
             }
         }
@@ -336,7 +472,12 @@ void Game::naive_resolve_collisions() {
 void Game::manage_entity_count() {
     while (m_objects.size() < m_spawn_quantity) {
         int id = ++m_lastUsedId;
-        FloatingObject* obj = new FloatingObject(texture, renderer, id);
+
+        int status = rand() % 3;
+
+        FloatingObject* obj = nullptr;
+
+        obj = new FloatingObject(state_textures, renderer, id, status);
         m_objects.push_back(obj);
         
         m_dod_ids.push_back(id);
@@ -344,6 +485,7 @@ void Game::manage_entity_count() {
         m_dod_pos_y.push_back(obj->m_position.y);
         m_dod_vel_x.push_back(obj->m_velocity.x);
         m_dod_vel_y.push_back(obj->m_velocity.y);
+        m_dod_status.push_back(status);
     }
 
     while (m_objects.size() > m_spawn_quantity) {
@@ -355,6 +497,7 @@ void Game::manage_entity_count() {
         m_dod_pos_y.pop_back();
         m_dod_vel_x.pop_back();
         m_dod_vel_y.pop_back();
+        m_dod_status.pop_back();
     }
 }
 
@@ -364,6 +507,7 @@ void Game::sync_state_to_dod() {
         m_dod_pos_y[i] = m_objects[i]->m_position.y;
         m_dod_vel_x[i] = m_objects[i]->m_velocity.x;
         m_dod_vel_y[i] = m_objects[i]->m_velocity.y;
+        m_dod_status[i] = m_objects[i]->m_status;
     }
 }
 
@@ -373,6 +517,7 @@ void Game::sync_state_to_oop() {
         m_objects[i]->m_position.y = m_dod_pos_y[i];
         m_objects[i]->m_velocity.x = m_dod_vel_x[i];
         m_objects[i]->m_velocity.y = m_dod_vel_y[i];
+        m_objects[i]->m_status = m_dod_status[i];
     }
 }
 
@@ -393,6 +538,26 @@ void Game::update_imgui()
     ImGui::Text("Process input time: %.3f", m_processInputTime);
     ImGui::Text("Update time: %.3f", m_updateTime);
     ImGui::Text("Render time: %.3f", m_renderTime);
+
+    std::vector<int> counters(NUMBER_OF_STATES);
+    if (m_use_dod) {
+        for (int i = 0; i < m_dod_status.size(); i++) {
+            counters[m_dod_status[i]]++;
+        }
+    }
+    else {
+        for (int i = 0; i < m_objects.size(); i++) {
+            counters[m_objects[i]->m_status]++;
+        }
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Simulation data:");
+    ImGui::Text("Doctors: %d", counters[STATUS::DOCTOR]);
+    ImGui::Text("Healthy: %d", counters[STATUS::HEALTHY]);
+    ImGui::Text("Natural recovery: %d", counters[STATUS::RECOVERED]);
+    ImGui::Text("Sick: %d", counters[STATUS::SICK]);
+
     ImGui::Separator();
 
     ImGui::Text("Memory Usage:");
@@ -402,9 +567,8 @@ void Game::update_imgui()
     ImGui::Separator();
     
     ImGui::Separator();
-    ImGui::SliderFloat("Simulation speed", &FloatingObject::speed_multiplier, 0.0f, 50.0f);
+    ImGui::SliderFloat("Simulation speed", &Constants::g_SIMULATION_SPEED, 0.0f, 50.0f);
     ImGui::SliderInt("Entities", &m_spawn_quantity, 0, MAX_ENTITIES);
-    ImGui::SliderFloat("Gravity", &Constants::g_GRAVITY, 0, 5000.0f);
     ImGui::SliderInt("Balls diameter", &Constants::g_BALL_DIAMETER, 1, 50);
 
     if (ImGui::RadioButton("OOP Mode", !m_use_dod)) {

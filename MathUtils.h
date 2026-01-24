@@ -1,30 +1,29 @@
+#pragma once
 #include <cmath>
+#include <algorithm>
 #include <SDL3/SDL.h>
 
 class MathUtils {
 public:
-    static bool circles_overlap(float x1, float y1, float x2, float y2, float radius) 
+    static bool circles_overlap(float x1, float y1, float x2, float y2, float radius)
     {
-        // Formula care determina distanta dintre doua puncte (a,b) = sqrt((ax-bx)^2 + (ay-by)^2)
-        float dx = (x1 - x2) * (x1 - x2); // calculez patratul distantei pe axa x
-        float dy = (y1 - y2) * (y1 - y2); // calculez patratul distantei pe axa y
-        float sum_radius = radius + radius; // suma razelor cercurilor
-
-        // Doua cercuri se intersecteaza daca distanta dintre ele este mai mica sau egala cu patratul sumei razelor
+        float dx = (x1 - x2) * (x1 - x2);
+        float dy = (y1 - y2) * (y1 - y2);
+        float sum_radius = radius + radius;
         return dx + dy <= sum_radius * sum_radius;
     }
 
     static void resolve_elastic_collision(float& x1, float& y1, float& vx1, float& vy1,
                                           float& x2, float& y2, float& vx2, float& vy2,
-                                          float radius) 
+                                          float radius)
     {
-        float distance = sqrtf((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
-        if (distance < 0.0001f) {
-            distance = 0.0001f;
-        }
+        float dx = x1 - x2;
+        float dy = y1 - y2;
+        float distance = std::sqrt(dx*dx + dy*dy);
+
+        if (distance < 0.0001f) distance = 0.0001f;
 
         float overlap = 0.5f * (radius + radius - distance);
-
         float nx = (x2 - x1) / distance;
         float ny = (y2 - y1) / distance;
 
@@ -35,11 +34,48 @@ public:
 
         float kx = (vx1 - vx2);
         float ky = (vy1 - vy2);
-        float p = 2.0f * (nx * kx + ny * ky) / 2.0f; // toate mingile au masa=1
+        float p = 2.0f * (nx * kx + ny * ky) / 2.0f;
 
         vx1 = vx1 - p * nx;
         vy1 = vy1 - p * ny;
         vx2 = vx2 + p * nx;
         vy2 = vy2 + p * ny;
+    }
+
+    // <--- Ensure this function is present and static --->
+    static void resolve_circle_aabb_collision(float& cx, float& cy, float& vx, float& vy, float radius, const SDL_FRect& rect)
+    {
+        // 1. Find closest point on rectangle
+        float closestX = std::max(rect.x, std::min(cx, rect.x + rect.w));
+        float closestY = std::max(rect.y, std::min(cy, rect.y + rect.h));
+
+        float dx = cx - closestX;
+        float dy = cy - closestY;
+        float distanceSquared = dx * dx + dy * dy;
+
+        // 2. Check collision (avoid sqrt if possible, and check > 0 to prevent div by zero)
+        if (distanceSquared < (radius * radius) && distanceSquared > 0.0001f) {
+            float distance = std::sqrt(distanceSquared);
+            float overlap = radius - distance;
+
+            // Normal
+            float nx = dx / distance;
+            float ny = dy / distance;
+
+            // Push out
+            cx += nx * overlap;
+            cy += ny * overlap;
+
+            // Bounce (Flip velocity based on normal)
+            if (std::abs(nx) > std::abs(ny)) {
+                vx *= -1.0f; // Hit side
+            } else {
+                vy *= -1.0f; // Hit top/bottom
+            }
+
+            // Friction
+            vx *= 0.9f;
+            vy *= 0.9f;
+        }
     }
 };

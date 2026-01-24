@@ -11,6 +11,7 @@
 #include "backends/imgui_impl_sdlrenderer3.h"
 #include "Chronometer.h"
 #include "MathUtils.h"
+#include "status.h"
 
 class Game {
 public:
@@ -32,15 +33,17 @@ private:
     void enforce_boundaries();
     void manage_entity_count();
     void check_screen_bounds(float& x, float& y, float& vx, float& vy);
+    void update_health_status(int i, int j);
 
     // sincronizare intre OOP si DOD
     void sync_state_to_dod();
     void sync_state_to_oop();
 
-    
+    const int NUMBER_OF_STATES = 4;
+
     SDL_Window* window = NULL;
     SDL_Renderer* renderer = NULL;
-    SDL_Texture* texture = NULL;
+    std::vector<SDL_Texture*> state_textures;
     
     bool m_isRunning = false;
     bool m_use_dod = false;
@@ -61,7 +64,7 @@ private:
     void calculate_memory();
 
     
-    int m_spawn_quantity = 100;
+    int m_spawn_quantity = 0;
     const int MAX_ENTITIES = 100000;
     int m_lastUsedId = 0;
 
@@ -74,7 +77,9 @@ private:
     std::vector<float> m_dod_pos_y;
     std::vector<float> m_dod_vel_x;
     std::vector<float> m_dod_vel_y;
+    std::vector<int> m_dod_status;
 
-    SpatialGrid m_grid;
+
     int m_gridCellSize = 50;
+    SpatialGrid m_grid;
 };
