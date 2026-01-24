@@ -19,8 +19,8 @@ FloatingObject::FloatingObject(std::vector<SDL_Texture*> textures, SDL_Renderer 
 }
 
 void FloatingObject::update(float deltaTime) {
-    m_position.x += m_velocity.x * deltaTime * Constants::g_SIMULATION_SPEED;
-    m_position.y += m_velocity.y * deltaTime * Constants::g_SIMULATION_SPEED;
+    m_position.x += m_velocity.x * deltaTime;
+    m_position.y += m_velocity.y * deltaTime;
 }
 
 void FloatingObject::render() {

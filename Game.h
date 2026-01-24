@@ -32,7 +32,7 @@ private:
     void naive_resolve_collisions();
     void enforce_boundaries();
     void manage_entity_count();
-    void check_screen_bounds(float& x, float& y, float& vx, float& vy);
+    void check_screen_bounds(float& x, float& y, float& vx, float& vy, int status);
     void update_health_status(int i, int j);
 
     // sincronizare intre OOP si DOD

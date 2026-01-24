@@ -69,7 +69,8 @@ bool Game::init() {
     SDL_Texture* naturally_recovered_texture = SDL_CreateTextureFromSurface(renderer, yellow);
     SDL_Texture* immunized_texture = SDL_CreateTextureFromSurface(renderer, pink);
 
-    if(!healthy_texture || !sick_texture || !doctor_texture || !healed_texture || !naturally_recovered_texture || !immunized_texture)
+    if(!healthy_texture || !sick_texture || !doctor_texture || !healed_texture ||
+        !naturally_recovered_texture || !immunized_texture)
         return false;
 
     state_textures[STATUS::SICK] = sick_texture;
@@ -166,10 +167,8 @@ void Game::update(float deltaTime) {
     if (m_use_dod) {
         for (int i = 0; i < m_dod_status.size(); i++) {
             if (m_dod_status[i] == STATUS::SICK) {
-                int fate = rand() % 10000;
-
-                if (fate < 1) {
-                    m_dod_status[i] = STATUS::NATURAL_RECOVERY; // 0.0001% sansa autovindecare
+                if (rand() % 1000 < 1) {
+                    m_dod_status[i] = STATUS::NATURAL_RECOVERY; // 0.001% sansa autovindecare
                 }
             }
         }
@@ -177,10 +176,8 @@ void Game::update(float deltaTime) {
     else {
         for (int i = 0; i < m_objects.size(); i++) {
             if (m_objects[i]->m_status == STATUS::SICK) {
-                int fate = rand() % 10000;
-
-                if (fate < 1) {
-                    m_objects[i]->m_status = STATUS::NATURAL_RECOVERY;
+                if (rand() % 1000 < 1) {
+                    m_objects[i]->m_status = STATUS::NATURAL_RECOVERY; // 0.001% sansa autovindecare
                 }
             }
         }
@@ -234,10 +231,12 @@ void Game::render() {
 }
 
 void Game::apply_physics(float deltaTime) {
+    deltaTime *= Constants::g_SIMULATION_SPEED;
+
     if (m_use_dod) {
         for(int i = 0; i < m_dod_ids.size(); i++) {
-            m_dod_pos_x[i] += m_dod_vel_x[i] * deltaTime * Constants::g_SIMULATION_SPEED;
-            m_dod_pos_y[i] += m_dod_vel_y[i] * deltaTime * Constants::g_SIMULATION_SPEED;
+            m_dod_pos_x[i] += m_dod_vel_x[i] * deltaTime;
+            m_dod_pos_y[i] += m_dod_vel_y[i] * deltaTime;
         }
     }
     else {
@@ -247,7 +246,7 @@ void Game::apply_physics(float deltaTime) {
     }
 }
 
-void Game::check_screen_bounds(float& x, float& y, float& vx, float& vy) {
+void Game::check_screen_bounds(float& x, float& y, float& vx, float& vy, int status) {
     float radius = Constants::g_BALL_DIAMETER / 2.0f;
     float energy_loss = -1.0f;
 
@@ -276,7 +275,7 @@ void Game::check_screen_bounds(float& x, float& y, float& vx, float& vy) {
 void Game::enforce_boundaries() {
     if(m_use_dod) {
         for(int i = 0; i < m_dod_ids.size(); i++) {
-            check_screen_bounds(m_dod_pos_x[i], m_dod_pos_y[i], m_dod_vel_x[i], m_dod_vel_y[i]);
+            check_screen_bounds(m_dod_pos_x[i], m_dod_pos_y[i], m_dod_vel_x[i], m_dod_vel_y[i], m_dod_status[i]);
         }
     }
     else {
@@ -285,8 +284,9 @@ void Game::enforce_boundaries() {
             float& y = m_objects[i]->m_position.y;
             float& vx = m_objects[i]->m_velocity.x;
             float& vy = m_objects[i]->m_velocity.y;
+            int status = m_objects[i]->m_status;
 
-            check_screen_bounds(x, y, vx, vy);
+            check_screen_bounds(x, y, vx, vy, status);
         }
     }
 }
@@ -513,7 +513,7 @@ void Game::manage_entity_count() {
         int status;
         int chance = rand() % 100;
 
-        if (chance < 5) {
+        if (chance < 10) {
             status = STATUS::DOCTOR;
         }
         else {
@@ -613,9 +613,9 @@ void Game::update_imgui()
     ImGui::Separator();
     
     ImGui::Separator();
-    ImGui::SliderFloat("Simulation speed", &Constants::g_SIMULATION_SPEED, 0.0f, 50.0f);
     ImGui::SliderInt("Entities", &m_spawn_quantity, 0, MAX_ENTITIES);
     ImGui::SliderInt("Balls diameter", &Constants::g_BALL_DIAMETER, 1, 50);
+    ImGui::SliderFloat("Simulation speed", &Constants::g_SIMULATION_SPEED, 0.0f, 10.0f);
 
     if (ImGui::RadioButton("OOP Mode", !m_use_dod)) {
         if (m_use_dod) sync_state_to_oop();
