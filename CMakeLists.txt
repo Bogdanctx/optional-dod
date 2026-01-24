@@ -35,6 +35,8 @@ add_executable(${PROJECT_NAME} WIN32
         main.cpp
         Game.cpp
         FloatingObject.cpp
+        SpatialGrid.cpp
+        Chronometer.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

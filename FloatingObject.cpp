@@ -1,57 +1,36 @@
 #include "FloatingObject.h"
-#include "utils.h"
+#include "constants.h"
 
 float FloatingObject::speed_multiplier = 1.0f;
 
-FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int id) {
-    m_texture = texture;
-    m_renderer = renderer;
-    m_radius = Utils::g_BALL_DIAMETER / 2.0f;
-
+FloatingObject::FloatingObject(SDL_Texture* texture, SDL_Renderer *renderer, int id) 
+    : m_texture(texture), m_renderer(renderer), m_id(id)
+{
+    m_radius = Constants::g_BALL_DIAMETER / 2.0f;
     m_direction = rand() % 360;
-    float random_x = rand() % (Utils::g_WINDOW_WIDTH - (int) Utils::g_BALL_DIAMETER) + Utils::g_BALL_DIAMETER; // preventie spawn initial langa margini
-    float random_y = rand() % (Utils::g_WINDOW_HEIGHT - (int) Utils::g_BALL_DIAMETER) + Utils::g_BALL_DIAMETER; // preventie spawn initial langa margini
-    m_position = SDL_FPoint{random_x + m_radius, random_y + m_radius}; // pun originea in centru
+    
+    float safeX = rand() % (Constants::g_WINDOW_WIDTH - (int)Constants::g_BALL_DIAMETER) + Constants::g_BALL_DIAMETER;
+    float safeY = rand() % (Constants::g_WINDOW_HEIGHT - (int)Constants::g_BALL_DIAMETER) + Constants::g_BALL_DIAMETER;
+    
+    m_position = {safeX, safeY};
 
-    float radians = m_direction * M_PI / 180.0f;
-
-    m_velocity = SDL_FPoint{cosf(radians) * m_speed, sinf(radians) * m_speed};
-
-    m_id = id;
+    float radians = m_direction * SDL_PI_F / 180.0f;
+    m_velocity = {cosf(radians) * m_speed, sinf(radians) * m_speed};
 }
 
-void FloatingObject::update(float deltaSpeed) {
-    // actualizez pozitia in functie de viteza, deltaTime si speed_multiplier (cat de repede se misca simularea)
-    m_position.x += m_velocity.x * deltaSpeed * speed_multiplier;
-    m_position.y += m_velocity.y * deltaSpeed * speed_multiplier;
+void FloatingObject::update(float deltaTime) {
+    m_velocity.y += Constants::g_GRAVITY * deltaTime;
 
-    // verific coliziunea cu marginile ferestrei
-    if (m_position.x - m_radius < 0.0f) {
-        m_position.x = m_radius;
-        m_velocity.x *= -1.0f;
-    }
-    else if (m_position.x + m_radius > (float) Utils::g_WINDOW_WIDTH) {
-        m_position.x = (float) Utils::g_WINDOW_WIDTH - m_radius;
-        m_velocity.x *= -1.0f;
-    }
-
-    if (m_position.y - m_radius < 0.0f) {
-        m_position.y = m_radius;
-        m_velocity.y *= -1.0f;
-    }
-    else if (m_position.y + m_radius > (float) Utils::g_WINDOW_HEIGHT) {
-        m_position.y = (float) Utils::g_WINDOW_HEIGHT - m_radius;
-        m_velocity.y *= -1.0f;
-    }
-    ///////////////////////////////////////////////
+    m_position.x += m_velocity.x * deltaTime;
+    m_position.y += m_velocity.y * deltaTime;
 }
 
 void FloatingObject::render() {
     SDL_FRect destRect = {
         m_position.x - m_radius,
         m_position.y - m_radius,
-        (float) Utils::g_BALL_DIAMETER,
-        (float) Utils::g_BALL_DIAMETER
+        (float) Constants::g_BALL_DIAMETER,
+        (float) Constants::g_BALL_DIAMETER
     };
     SDL_RenderTexture(m_renderer, m_texture, NULL, &destRect);
 }
