@@ -39,7 +39,7 @@ private:
     void sync_state_to_dod();
     void sync_state_to_oop();
 
-    const int NUMBER_OF_STATES = 4;
+    const int NUMBER_OF_STATES = 6;
 
     SDL_Window* window = NULL;
     SDL_Renderer* renderer = NULL;

@@ -54,29 +54,37 @@ bool Game::init() {
     SDL_Surface* white = IMG_Load("white.png"); // incarc textura
     SDL_Surface* red = IMG_Load("red.png"); // incarc textura
     SDL_Surface* green = IMG_Load("green.png"); // incarc textura
+    SDL_Surface* yellow = IMG_Load("yellow.png"); // incarc textura
+    SDL_Surface* pink = IMG_Load("pink.png"); // incarc textura
 
-    
-    if(!cyan || !white || !red || !green) return false;
+
+    if(!cyan || !white || !red || !green || !yellow || !pink) return false;
 
     state_textures.resize(NUMBER_OF_STATES);
 
     SDL_Texture* healthy_texture = SDL_CreateTextureFromSurface(renderer, green); // creez textura din surface
     SDL_Texture* sick_texture = SDL_CreateTextureFromSurface(renderer, red);
     SDL_Texture* doctor_texture = SDL_CreateTextureFromSurface(renderer, white);
-    SDL_Texture* recovered_texture = SDL_CreateTextureFromSurface(renderer, cyan);
+    SDL_Texture* healed_texture = SDL_CreateTextureFromSurface(renderer, cyan);
+    SDL_Texture* naturally_recovered_texture = SDL_CreateTextureFromSurface(renderer, yellow);
+    SDL_Texture* immunized_texture = SDL_CreateTextureFromSurface(renderer, pink);
 
-    if(!healthy_texture || !sick_texture || !doctor_texture || !recovered_texture)
+    if(!healthy_texture || !sick_texture || !doctor_texture || !healed_texture || !naturally_recovered_texture || !immunized_texture)
         return false;
 
     state_textures[STATUS::SICK] = sick_texture;
     state_textures[STATUS::DOCTOR] = doctor_texture;
     state_textures[STATUS::HEALTHY] = healthy_texture;
-    state_textures[STATUS::RECOVERED] = recovered_texture;
+    state_textures[STATUS::NATURAL_RECOVERY] = naturally_recovered_texture;
+    state_textures[STATUS::HEALED] = healed_texture;
+    state_textures[STATUS::IMMUNIZED] = immunized_texture;
 
     SDL_DestroySurface(cyan); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
     SDL_DestroySurface(red); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
     SDL_DestroySurface(green); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
     SDL_DestroySurface(white); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
+    SDL_DestroySurface(yellow);
+    SDL_DestroySurface(pink);
 
 
     m_grid = SpatialGrid(Constants::g_WINDOW_WIDTH, Constants::g_WINDOW_HEIGHT, m_gridCellSize);
@@ -161,7 +169,7 @@ void Game::update(float deltaTime) {
                 int fate = rand() % 10000;
 
                 if (fate < 1) {
-                    m_dod_status[i] = STATUS::RECOVERED; // 0.01% chance to recover
+                    m_dod_status[i] = STATUS::NATURAL_RECOVERY; // 0.0001% sansa autovindecare
                 }
             }
         }
@@ -172,7 +180,7 @@ void Game::update(float deltaTime) {
                 int fate = rand() % 10000;
 
                 if (fate < 1) {
-                    m_objects[i]->m_status = STATUS::RECOVERED;
+                    m_objects[i]->m_status = STATUS::NATURAL_RECOVERY;
                 }
             }
         }
@@ -287,61 +295,91 @@ void Game::update_health_status(int i, int j) {
     int odd = rand() % 100;
 
     if (m_use_dod) {
-        if (m_dod_status[i] == STATUS::RECOVERED || m_dod_status[j] == STATUS::RECOVERED) return;
+        if (m_dod_status[i] == STATUS::NATURAL_RECOVERY || m_dod_status[j] == STATUS::NATURAL_RECOVERY) {
+            return;
+        }
+        if (m_dod_status[i] == STATUS::IMMUNIZED || m_dod_status[j] == STATUS::IMMUNIZED) {
+            return;
+        }
 
-        if (m_dod_status[i] == STATUS::DOCTOR && m_dod_status[j] == STATUS::SICK) {
+        // coliziune SICK cu DOCTOR
+        if ((m_dod_status[i] == STATUS::DOCTOR && m_dod_status[j] == STATUS::SICK) ||
+            (m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::DOCTOR)) {
+
+            int doctor_idx = (m_dod_status[i] == STATUS::DOCTOR) ? i : j;
+            int sick_idx = (m_dod_status[i] == STATUS::SICK) ? i : j;
+
             if (odd < 1) {
-                m_dod_status[i] = STATUS::SICK;
+                // 1% se imbolnaveste doctorul
+                m_dod_status[doctor_idx] = STATUS::SICK;
             }
-            else {
-                m_dod_status[j] = STATUS::HEALTHY;
-            }
-        }
-        else if (m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::DOCTOR) {
-            if (odd < 1) {
-                m_dod_status[j] = STATUS::SICK;
-            }
-            else {
-                m_dod_status[i] = STATUS::HEALTHY;
+            else if (odd < 86) {
+                // 85% sick este tratat
+                m_dod_status[sick_idx] = STATUS::HEALED;
             }
         }
-        else if (m_dod_status[i] == STATUS::HEALTHY && m_dod_status[j] == STATUS::SICK) {
-            if (odd < 75) m_dod_status[i] = STATUS::SICK;
+        // coliziune HEALTHY cu DOCTOR
+        else if ((m_dod_status[i] == STATUS::DOCTOR && m_dod_status[j] == STATUS::HEALTHY) ||
+                 (m_dod_status[i] == STATUS::HEALTHY && m_dod_status[j] == STATUS::DOCTOR)) {
+
+            int healthy_idx = (m_dod_status[i] == STATUS::HEALTHY) ? i : j;
+            m_dod_status[healthy_idx] = STATUS::IMMUNIZED; // se imunizeaza actorul HEALTHY
         }
-        else if (m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::HEALTHY) {
-            if (odd < 75) m_dod_status[j] = STATUS::SICK;
+        // coliziune HEALTHY cu SICK
+        else if ((m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::HEALTHY) ||
+                 (m_dod_status[i] == STATUS::HEALTHY && m_dod_status[j] == STATUS::SICK)) {
+
+            int healthy_idx = (m_dod_status[i] == STATUS::HEALTHY) ? i : j;
+
+            if (odd < 80) {
+                // 80% actorul HEALTHY se imbolnaveste
+                m_dod_status[healthy_idx] = STATUS::SICK;
+            }
         }
     }
     else {
         FloatingObject* obj1 = m_objects[i];
         FloatingObject* obj2 = m_objects[j];
 
-        if (obj1->m_status == STATUS::RECOVERED || obj2->m_status == STATUS::RECOVERED) return;
+        if (obj1->m_status == STATUS::NATURAL_RECOVERY || obj2->m_status == STATUS::NATURAL_RECOVERY) {
+            return;
+        }
+        if (obj1->m_status == STATUS::IMMUNIZED || obj2->m_status == STATUS::IMMUNIZED) {
+            return;
+        }
 
-        if (obj1->m_status == STATUS::DOCTOR && obj2->m_status == STATUS::SICK) {
+        // coliziune SICK cu DOCTOR
+        if ((obj1->m_status == STATUS::DOCTOR && obj2->m_status == STATUS::SICK) ||
+            (obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::DOCTOR)) {
+
+            FloatingObject* doctor = (obj1->m_status == STATUS::DOCTOR) ? obj1 : obj2;
+            FloatingObject* sick = (obj1->m_status == STATUS::SICK) ? obj1 : obj2;
+
             if (odd < 1) {
-                obj1->m_status = STATUS::SICK;
+                // 1% se imbolnaveste doctorul
+                doctor->m_status = STATUS::SICK;
             }
-            else {
-                obj2->m_status = STATUS::HEALTHY;
-            }
-        }
-        else if (obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::DOCTOR) {
-            if (odd < 1) {
-                obj2->m_status = STATUS::SICK;
-            }
-            else {
-                obj1->m_status = STATUS::HEALTHY;
+            else if (odd < 86) {
+                // 85% sick este tratat
+                sick->m_status = STATUS::HEALED;
             }
         }
-        else if (obj1->m_status == STATUS::HEALTHY && obj2->m_status == STATUS::SICK) {
-            if (odd < 75) {
-                obj1->m_status = STATUS::SICK;
-            }
+        // coliziune HEALTHY cu DOCTOR
+        else if ((obj1->m_status == STATUS::DOCTOR && obj2->m_status == STATUS::HEALTHY) ||
+                 (obj1->m_status == STATUS::HEALTHY && obj2->m_status == STATUS::DOCTOR)) {
+
+            FloatingObject* healthy = (obj1->m_status == STATUS::HEALTHY) ? obj1 : obj2;
+            healthy->m_status = STATUS::IMMUNIZED;
         }
-        else if (obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::HEALTHY) {
-            if (odd < 75) {
-                obj2->m_status = STATUS::SICK;
+        // coliziune HEALTHY cu SICK
+        else if ((obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::HEALTHY) ||
+                 (obj1->m_status == STATUS::HEALTHY && obj2->m_status == STATUS::SICK)) {
+
+            FloatingObject* healthy = (obj1->m_status == STATUS::HEALTHY) ? obj1 : obj2;
+
+            if (odd < 80) {
+                // 80% actorul HEALTHY se imbolnaveste
+                healthy->m_status = STATUS::SICK;
             }
         }
     }
@@ -472,12 +510,17 @@ void Game::naive_resolve_collisions() {
 void Game::manage_entity_count() {
     while (m_objects.size() < m_spawn_quantity) {
         int id = ++m_lastUsedId;
+        int status;
+        int chance = rand() % 100;
 
-        int status = rand() % 3;
+        if (chance < 5) {
+            status = STATUS::DOCTOR;
+        }
+        else {
+            status = (rand() % 2) + 1;
+        }
 
-        FloatingObject* obj = nullptr;
-
-        obj = new FloatingObject(state_textures, renderer, id, status);
+        FloatingObject* obj = new FloatingObject(state_textures, renderer, id, status);
         m_objects.push_back(obj);
         
         m_dod_ids.push_back(id);
@@ -552,10 +595,13 @@ void Game::update_imgui()
     }
 
     ImGui::Separator();
+
     ImGui::Text("Simulation data:");
     ImGui::Text("Doctors: %d", counters[STATUS::DOCTOR]);
     ImGui::Text("Healthy: %d", counters[STATUS::HEALTHY]);
-    ImGui::Text("Natural recovery: %d", counters[STATUS::RECOVERED]);
+    ImGui::Text("Natural recovery: %d", counters[STATUS::NATURAL_RECOVERY]);
+    ImGui::Text("Vaccinated: %d", counters[STATUS::IMMUNIZED]);
+    ImGui::Text("Healed: %d", counters[STATUS::HEALED]);
     ImGui::Text("Sick: %d", counters[STATUS::SICK]);
 
     ImGui::Separator();

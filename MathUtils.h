@@ -41,41 +41,4 @@ public:
         vx2 = vx2 + p * nx;
         vy2 = vy2 + p * ny;
     }
-
-    // <--- Ensure this function is present and static --->
-    static void resolve_circle_aabb_collision(float& cx, float& cy, float& vx, float& vy, float radius, const SDL_FRect& rect)
-    {
-        // 1. Find closest point on rectangle
-        float closestX = std::max(rect.x, std::min(cx, rect.x + rect.w));
-        float closestY = std::max(rect.y, std::min(cy, rect.y + rect.h));
-
-        float dx = cx - closestX;
-        float dy = cy - closestY;
-        float distanceSquared = dx * dx + dy * dy;
-
-        // 2. Check collision (avoid sqrt if possible, and check > 0 to prevent div by zero)
-        if (distanceSquared < (radius * radius) && distanceSquared > 0.0001f) {
-            float distance = std::sqrt(distanceSquared);
-            float overlap = radius - distance;
-
-            // Normal
-            float nx = dx / distance;
-            float ny = dy / distance;
-
-            // Push out
-            cx += nx * overlap;
-            cy += ny * overlap;
-
-            // Bounce (Flip velocity based on normal)
-            if (std::abs(nx) > std::abs(ny)) {
-                vx *= -1.0f; // Hit side
-            } else {
-                vy *= -1.0f; // Hit top/bottom
-            }
-
-            // Friction
-            vx *= 0.9f;
-            vy *= 0.9f;
-        }
-    }
 };
