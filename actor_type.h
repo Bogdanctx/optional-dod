@@ -1,7 +1,7 @@
-#ifndef STATUS_H
-#define STATUS_H
+#ifndef DOD_ACTOR_TYPES_H
+#define DOD_ACTOR_TYPES_H
 
-enum STATUS {
+enum ACTOR_TYPES {
     DOCTOR = 0,
     HEALTHY = 1,
     SICK = 2,
@@ -10,4 +10,4 @@ enum STATUS {
     IMMUNIZED = 5
 };
 
-#endif //STATUS_H
+#endif

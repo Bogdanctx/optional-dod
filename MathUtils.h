@@ -21,7 +21,10 @@ public:
         float dy = y1 - y2;
         float distance = std::sqrt(dx*dx + dy*dy);
 
-        if (distance < 0.0001f) distance = 0.0001f;
+        // sa nu am impartire la 0
+        if (distance < 0.0001f) {
+            distance = 0.0001f;
+        }
 
         float overlap = 0.5f * (radius + radius - distance);
         float nx = (x2 - x1) / distance;

@@ -6,15 +6,13 @@
 
 
 Game::Game() : m_grid(Constants::g_WINDOW_WIDTH, Constants::g_WINDOW_HEIGHT, m_gridCellSize)
-{
-
-}
+{}
 
 Game::~Game() {
-    for (int i = 0; i < m_objects.size(); i++) {
-        delete m_objects[i]; // dezaloc memoria
+    for (int i = 0; i < m_actors.size(); i++) {
+        delete m_actors[i]; // dezaloc memoria
     }
-    m_objects.clear();
+    m_actors.clear();
 
     ImGui_ImplSDLRenderer3_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -73,21 +71,24 @@ bool Game::init() {
         !naturally_recovered_texture || !immunized_texture)
         return false;
 
-    state_textures[STATUS::SICK] = sick_texture;
-    state_textures[STATUS::DOCTOR] = doctor_texture;
-    state_textures[STATUS::HEALTHY] = healthy_texture;
-    state_textures[STATUS::NATURAL_RECOVERY] = naturally_recovered_texture;
-    state_textures[STATUS::HEALED] = healed_texture;
-    state_textures[STATUS::IMMUNIZED] = immunized_texture;
+    state_textures[ACTOR_TYPES::SICK] = sick_texture;
+    state_textures[ACTOR_TYPES::DOCTOR] = doctor_texture;
+    state_textures[ACTOR_TYPES::HEALTHY] = healthy_texture;
+    state_textures[ACTOR_TYPES::NATURAL_RECOVERY] = naturally_recovered_texture;
+    state_textures[ACTOR_TYPES::HEALED] = healed_texture;
+    state_textures[ACTOR_TYPES::IMMUNIZED] = immunized_texture;
 
-    SDL_DestroySurface(cyan); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
-    SDL_DestroySurface(red); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
-    SDL_DestroySurface(green); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
-    SDL_DestroySurface(white); // eliberez surface-ul din memorie pentru ca nu mai am nevoie de el
+    // eliberez surface-ul din memorie
+    SDL_DestroySurface(cyan);
+    SDL_DestroySurface(red);
+    SDL_DestroySurface(green);
+    SDL_DestroySurface(white);
     SDL_DestroySurface(yellow);
     SDL_DestroySurface(pink);
+    ////////////////
 
 
+    // initializare spatial grid
     m_grid = SpatialGrid(Constants::g_WINDOW_WIDTH, Constants::g_WINDOW_HEIGHT, m_gridCellSize);
     m_isRunning = true;
 
@@ -132,9 +133,6 @@ void Game::process_input() {
                 if (event.key.key == SDLK_ESCAPE) { // a apasat ESC
                     m_isRunning = false;
                 }
-                else if (event.key.key == SDLK_R) { // a apasat R
-
-                }
                 break;
             }
             default:
@@ -144,8 +142,9 @@ void Game::process_input() {
 }
 
 void Game::update(float deltaTime) {
-    manage_entity_count();
+    manage_entity_count(); // verifica daca au fost adaugate/eliminate entitati
 
+    // dau resize la grid daca am schimbat dimensiunea unei celule
     if(m_grid.get_cell_size() != m_gridCellSize) {
         m_grid.resize(Constants::g_WINDOW_WIDTH, Constants::g_WINDOW_HEIGHT, m_gridCellSize);
     }
@@ -161,27 +160,28 @@ void Game::update(float deltaTime) {
         }
     }
 
-    enforce_boundaries();
+    check_screen_bounds();
     calculate_memory();
 
     if (m_use_dod) {
-        for (int i = 0; i < m_dod_status.size(); i++) {
-            if (m_dod_status[i] == STATUS::SICK) {
-                if (rand() % 1000 < 1) {
-                    m_dod_status[i] = STATUS::NATURAL_RECOVERY; // 0.001% sansa autovindecare
+        for (int i = 0; i < m_actor_types.size(); i++) {
+            if (m_actor_types[i] == ACTOR_TYPES::SICK) {
+                if (rand() % 10000 < 1) {
+                    m_actor_types[i] = ACTOR_TYPES::NATURAL_RECOVERY; // 0.0001% sansa autovindecare
                 }
             }
         }
     }
     else {
-        for (int i = 0; i < m_objects.size(); i++) {
-            if (m_objects[i]->m_status == STATUS::SICK) {
+        for (int i = 0; i < m_actors.size(); i++) {
+            if (m_actors[i]->m_status == ACTOR_TYPES::SICK) {
                 if (rand() % 1000 < 1) {
-                    m_objects[i]->m_status = STATUS::NATURAL_RECOVERY; // 0.001% sansa autovindecare
+                    m_actors[i]->m_status = ACTOR_TYPES::NATURAL_RECOVERY; // 0.001% sansa autovindecare
                 }
             }
         }
     }
+
 }
 
 void Game::render() {
@@ -193,33 +193,32 @@ void Game::render() {
     if (m_drawGrid) {
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-        // Ca sa desenez fiecare celula prima data trasez linii verticale si dupa linii orizontale
+        // desenez fiecare celula cu linii verticale si orizontale
         for (int x = 0; x <= Constants::g_WINDOW_WIDTH; x += m_gridCellSize) {
             SDL_RenderLine(renderer, x, 0, x, Constants::g_WINDOW_HEIGHT);
         }
-        
+
         for (int y = 0; y <= Constants::g_WINDOW_HEIGHT; y += m_gridCellSize) {
             SDL_RenderLine(renderer, 0, y, Constants::g_WINDOW_WIDTH, y);
         }
     }
 
     // prima data dau render la obiecte
-    int numberOfObjects = m_objects.size();
     if (m_use_dod) {
-        for (int i = 0; i < numberOfObjects; i++) {
+        for (int i = 0; i < m_actor_ids.size(); i++) {
             SDL_FRect destRect = {
-                m_dod_pos_x[i] - Constants::g_BALL_DIAMETER / 2, // scad radius pentru ca originea este in centru
-                m_dod_pos_y[i] - Constants::g_BALL_DIAMETER / 2, // scad radius pentru ca originea este in centru
+                m_actor_positions_x[i] - Constants::g_BALL_DIAMETER / 2, // scad raza pentru ca originea este in centru
+                m_actor_positions_y[i] - Constants::g_BALL_DIAMETER / 2, // scad raza pentru ca originea este in centru
                 (float) Constants::g_BALL_DIAMETER,
                 (float) Constants::g_BALL_DIAMETER
             };
 
-            SDL_RenderTexture(renderer, state_textures[m_dod_status[i]], NULL, &destRect);
+            SDL_RenderTexture(renderer, state_textures[m_actor_types[i]], NULL, &destRect);
         }
     }
     else {
-        for (int i = 0; i < numberOfObjects; i++) {
-            m_objects[i]->render();
+        for (int i = 0; i < m_actors.size(); i++) {
+            m_actors[i]->render();
         }
     }
 
@@ -234,152 +233,151 @@ void Game::apply_physics(float deltaTime) {
     deltaTime *= Constants::g_SIMULATION_SPEED;
 
     if (m_use_dod) {
-        for(int i = 0; i < m_dod_ids.size(); i++) {
-            m_dod_pos_x[i] += m_dod_vel_x[i] * deltaTime;
-            m_dod_pos_y[i] += m_dod_vel_y[i] * deltaTime;
+        for(int i = 0; i < m_actor_ids.size(); i++) {
+            m_actor_positions_x[i] += m_actor_velocities_x[i] * deltaTime;
+            m_actor_positions_y[i] += m_actors_velocities_y[i] * deltaTime;
         }
     }
     else {
-        for(int i = 0; i < m_objects.size(); i++) {
-            m_objects[i]->update(deltaTime);
+        for(int i = 0; i < m_actors.size(); i++) {
+            m_actors[i]->update(deltaTime);
         }
     }
 }
 
-void Game::check_screen_bounds(float& x, float& y, float& vx, float& vy, int status) {
+void Game::enforce_boundaries(float& x, float& y, float& vx, float& vy) {
     float radius = Constants::g_BALL_DIAMETER / 2.0f;
-    float energy_loss = -1.0f;
+    float energy_loss = -1.0f; // vreau ca actorii sa mearga incontinuu
 
-    if (y + radius > Constants::g_WINDOW_HEIGHT)
+    if (y + radius > Constants::g_WINDOW_HEIGHT) // coliziune cu marginea de jos
     {
         y = Constants::g_WINDOW_HEIGHT - radius;
         vy *= energy_loss;
     }
-    else if (y - radius < 0)
+    else if (y - radius < 0) // coliziune cu marginea de sus
     {
         y = radius;
         vy *= energy_loss;
     }
 
-    if (x + radius > Constants::g_WINDOW_WIDTH) {
+    if (x + radius > Constants::g_WINDOW_WIDTH) { // coliziune cu marginea din dreapta
         x = Constants::g_WINDOW_WIDTH - radius;
         vx *= energy_loss;
     }
-    else if (x - radius < 0)
+    else if (x - radius < 0) // coliziune cu marginea din stanga
     {
         x = radius;
         vx *= energy_loss;
     }
 }
 
-void Game::enforce_boundaries() {
+void Game::check_screen_bounds() {
     if(m_use_dod) {
-        for(int i = 0; i < m_dod_ids.size(); i++) {
-            check_screen_bounds(m_dod_pos_x[i], m_dod_pos_y[i], m_dod_vel_x[i], m_dod_vel_y[i], m_dod_status[i]);
+        for(int i = 0; i < m_actor_ids.size(); i++) {
+            enforce_boundaries(m_actor_positions_x[i], m_actor_positions_y[i], m_actor_velocities_x[i], m_actors_velocities_y[i]);
         }
     }
     else {
-        for(int i = 0; i < m_objects.size(); i++) {
-            float& x = m_objects[i]->m_position.x;
-            float& y = m_objects[i]->m_position.y;
-            float& vx = m_objects[i]->m_velocity.x;
-            float& vy = m_objects[i]->m_velocity.y;
-            int status = m_objects[i]->m_status;
+        for(int i = 0; i < m_actors.size(); i++) {
+            float& x = m_actors[i]->m_position.x;
+            float& y = m_actors[i]->m_position.y;
+            float& vx = m_actors[i]->m_velocity.x;
+            float& vy = m_actors[i]->m_velocity.y;
 
-            check_screen_bounds(x, y, vx, vy, status);
+            enforce_boundaries(x, y, vx, vy);
         }
     }
 }
 
 void Game::update_health_status(int i, int j) {
-    int odd = rand() % 100;
+    int odd = rand() % 100; // generez o sansa
 
     if (m_use_dod) {
-        if (m_dod_status[i] == STATUS::NATURAL_RECOVERY || m_dod_status[j] == STATUS::NATURAL_RECOVERY) {
+        if (m_actor_types[i] == ACTOR_TYPES::NATURAL_RECOVERY || m_actor_types[j] == ACTOR_TYPES::NATURAL_RECOVERY) {
             return;
         }
-        if (m_dod_status[i] == STATUS::IMMUNIZED || m_dod_status[j] == STATUS::IMMUNIZED) {
+        if (m_actor_types[i] == ACTOR_TYPES::IMMUNIZED || m_actor_types[j] == ACTOR_TYPES::IMMUNIZED) {
             return;
         }
 
         // coliziune SICK cu DOCTOR
-        if ((m_dod_status[i] == STATUS::DOCTOR && m_dod_status[j] == STATUS::SICK) ||
-            (m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::DOCTOR)) {
-
-            int doctor_idx = (m_dod_status[i] == STATUS::DOCTOR) ? i : j;
-            int sick_idx = (m_dod_status[i] == STATUS::SICK) ? i : j;
+        if ((m_actor_types[i] == ACTOR_TYPES::DOCTOR && m_actor_types[j] == ACTOR_TYPES::SICK) ||
+            (m_actor_types[i] == ACTOR_TYPES::SICK && m_actor_types[j] == ACTOR_TYPES::DOCTOR))
+        {
+            int doctor_idx = (m_actor_types[i] == ACTOR_TYPES::DOCTOR) ? i : j;
+            int sick_idx = (m_actor_types[i] == ACTOR_TYPES::SICK) ? i : j;
 
             if (odd < 1) {
                 // 1% se imbolnaveste doctorul
-                m_dod_status[doctor_idx] = STATUS::SICK;
+                m_actor_types[doctor_idx] = ACTOR_TYPES::SICK;
             }
             else if (odd < 86) {
                 // 85% sick este tratat
-                m_dod_status[sick_idx] = STATUS::HEALED;
+                m_actor_types[sick_idx] = ACTOR_TYPES::HEALED;
             }
         }
         // coliziune HEALTHY cu DOCTOR
-        else if ((m_dod_status[i] == STATUS::DOCTOR && m_dod_status[j] == STATUS::HEALTHY) ||
-                 (m_dod_status[i] == STATUS::HEALTHY && m_dod_status[j] == STATUS::DOCTOR)) {
-
-            int healthy_idx = (m_dod_status[i] == STATUS::HEALTHY) ? i : j;
-            m_dod_status[healthy_idx] = STATUS::IMMUNIZED; // se imunizeaza actorul HEALTHY
+        else if ((m_actor_types[i] == ACTOR_TYPES::DOCTOR && m_actor_types[j] == ACTOR_TYPES::HEALTHY) ||
+                 (m_actor_types[i] == ACTOR_TYPES::HEALTHY && m_actor_types[j] == ACTOR_TYPES::DOCTOR))
+        {
+            int healthy_idx = (m_actor_types[i] == ACTOR_TYPES::HEALTHY) ? i : j;
+            m_actor_types[healthy_idx] = ACTOR_TYPES::IMMUNIZED; // se imunizeaza actorul HEALTHY
         }
         // coliziune HEALTHY cu SICK
-        else if ((m_dod_status[i] == STATUS::SICK && m_dod_status[j] == STATUS::HEALTHY) ||
-                 (m_dod_status[i] == STATUS::HEALTHY && m_dod_status[j] == STATUS::SICK)) {
-
-            int healthy_idx = (m_dod_status[i] == STATUS::HEALTHY) ? i : j;
+        else if ((m_actor_types[i] == ACTOR_TYPES::SICK && m_actor_types[j] == ACTOR_TYPES::HEALTHY) ||
+                 (m_actor_types[i] == ACTOR_TYPES::HEALTHY && m_actor_types[j] == ACTOR_TYPES::SICK))
+        {
+            int healthy_idx = (m_actor_types[i] == ACTOR_TYPES::HEALTHY) ? i : j;
 
             if (odd < 80) {
                 // 80% actorul HEALTHY se imbolnaveste
-                m_dod_status[healthy_idx] = STATUS::SICK;
+                m_actor_types[healthy_idx] = ACTOR_TYPES::SICK;
             }
         }
     }
     else {
-        FloatingObject* obj1 = m_objects[i];
-        FloatingObject* obj2 = m_objects[j];
+        Actor* obj1 = m_actors[i];
+        Actor* obj2 = m_actors[j];
 
-        if (obj1->m_status == STATUS::NATURAL_RECOVERY || obj2->m_status == STATUS::NATURAL_RECOVERY) {
+        if (obj1->m_status == ACTOR_TYPES::NATURAL_RECOVERY || obj2->m_status == ACTOR_TYPES::NATURAL_RECOVERY) {
             return;
         }
-        if (obj1->m_status == STATUS::IMMUNIZED || obj2->m_status == STATUS::IMMUNIZED) {
+        if (obj1->m_status == ACTOR_TYPES::IMMUNIZED || obj2->m_status == ACTOR_TYPES::IMMUNIZED) {
             return;
         }
 
         // coliziune SICK cu DOCTOR
-        if ((obj1->m_status == STATUS::DOCTOR && obj2->m_status == STATUS::SICK) ||
-            (obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::DOCTOR)) {
-
-            FloatingObject* doctor = (obj1->m_status == STATUS::DOCTOR) ? obj1 : obj2;
-            FloatingObject* sick = (obj1->m_status == STATUS::SICK) ? obj1 : obj2;
+        if ((obj1->m_status == ACTOR_TYPES::DOCTOR && obj2->m_status == ACTOR_TYPES::SICK) ||
+            (obj1->m_status == ACTOR_TYPES::SICK && obj2->m_status == ACTOR_TYPES::DOCTOR))
+        {
+            Actor* doctor = (obj1->m_status == ACTOR_TYPES::DOCTOR) ? obj1 : obj2;
+            Actor* sick = (obj1->m_status == ACTOR_TYPES::SICK) ? obj1 : obj2;
 
             if (odd < 1) {
                 // 1% se imbolnaveste doctorul
-                doctor->m_status = STATUS::SICK;
+                doctor->m_status = ACTOR_TYPES::SICK;
             }
             else if (odd < 86) {
                 // 85% sick este tratat
-                sick->m_status = STATUS::HEALED;
+                sick->m_status = ACTOR_TYPES::HEALED;
             }
         }
         // coliziune HEALTHY cu DOCTOR
-        else if ((obj1->m_status == STATUS::DOCTOR && obj2->m_status == STATUS::HEALTHY) ||
-                 (obj1->m_status == STATUS::HEALTHY && obj2->m_status == STATUS::DOCTOR)) {
-
-            FloatingObject* healthy = (obj1->m_status == STATUS::HEALTHY) ? obj1 : obj2;
-            healthy->m_status = STATUS::IMMUNIZED;
+        else if ((obj1->m_status == ACTOR_TYPES::DOCTOR && obj2->m_status == ACTOR_TYPES::HEALTHY) ||
+                 (obj1->m_status == ACTOR_TYPES::HEALTHY && obj2->m_status == ACTOR_TYPES::DOCTOR))
+        {
+            Actor* healthy = (obj1->m_status == ACTOR_TYPES::HEALTHY) ? obj1 : obj2;
+            healthy->m_status = ACTOR_TYPES::IMMUNIZED;
         }
         // coliziune HEALTHY cu SICK
-        else if ((obj1->m_status == STATUS::SICK && obj2->m_status == STATUS::HEALTHY) ||
-                 (obj1->m_status == STATUS::HEALTHY && obj2->m_status == STATUS::SICK)) {
-
-            FloatingObject* healthy = (obj1->m_status == STATUS::HEALTHY) ? obj1 : obj2;
+        else if ((obj1->m_status == ACTOR_TYPES::SICK && obj2->m_status == ACTOR_TYPES::HEALTHY) ||
+                 (obj1->m_status == ACTOR_TYPES::HEALTHY && obj2->m_status == ACTOR_TYPES::SICK))
+        {
+            Actor* healthy = (obj1->m_status == ACTOR_TYPES::HEALTHY) ? obj1 : obj2;
 
             if (odd < 80) {
                 // 80% actorul HEALTHY se imbolnaveste
-                healthy->m_status = STATUS::SICK;
+                healthy->m_status = ACTOR_TYPES::SICK;
             }
         }
     }
@@ -389,56 +387,58 @@ void Game::update_health_status(int i, int j) {
 
 void Game::optimized_resolve_collisions() {
     float radius = Constants::g_BALL_DIAMETER / 2.0f;
-    int count = m_use_dod ? m_dod_ids.size() : m_objects.size();
+    int count = m_use_dod ? m_actor_ids.size() : m_actors.size();
 
+    // recalculez grid-ul
     m_grid.clear();
     for (int i = 0; i < count; ++i) {
-        float x = m_use_dod ? m_dod_pos_x[i] : m_objects[i]->m_position.x;
-        float y = m_use_dod ? m_dod_pos_y[i] : m_objects[i]->m_position.y;
+        float x = m_use_dod ? m_actor_positions_x[i] : m_actors[i]->m_position.x;
+        float y = m_use_dod ? m_actor_positions_y[i] : m_actors[i]->m_position.y;
         m_grid.insert(x, y, i);
     }
 
     for (int i = 0; i < count; ++i) {
         float x1, y1;
-        
+
         if (m_use_dod) {
-            x1 = m_dod_pos_x[i];
-            y1 = m_dod_pos_y[i];
+            x1 = m_actor_positions_x[i];
+            y1 = m_actor_positions_y[i];
         }
         else {
-            x1 = m_objects[i]->m_position.x;
-            y1 = m_objects[i]->m_position.y;
+            x1 = m_actors[i]->m_position.x;
+            y1 = m_actors[i]->m_position.y;
         }
 
         int col = (int)(x1 / m_gridCellSize);
         int row = (int)(y1 / m_gridCellSize);
 
+        // edge case: actori care sunt intre 2 celule din grid
+        // solutie: verific vecinii unei celule
         for (int dy = -1; dy <= 1; dy++) {
             for (int dx = -1; dx <= 1; dx++) {
                 std::vector<int> cell = m_grid.get_cell(col + dx, row + dy);
-                
-                for (int j : cell) {
-                    if (j <= i) continue;
+
+                for (int j: cell) { // j = vectori de indecsi
+                    if (j <= i) {
+                        continue;
+                    }
 
                     if (m_use_dod)
                     {
-                        if (MathUtils::circles_overlap(x1, y1, m_dod_pos_x[j], m_dod_pos_y[j], radius))
-                            {
+                        if (MathUtils::circles_overlap(m_actor_positions_x[i], m_actor_positions_y[i], m_actor_positions_x[j], m_actor_positions_y[j], radius))
+                        {
                             MathUtils::resolve_elastic_collision(
-                                m_dod_pos_x[i], m_dod_pos_y[i], m_dod_vel_x[i], m_dod_vel_y[i],
-                                m_dod_pos_x[j], m_dod_pos_y[j], m_dod_vel_x[j], m_dod_vel_y[j],
+                                m_actor_positions_x[i], m_actor_positions_y[i], m_actor_velocities_x[i], m_actors_velocities_y[i],
+                                m_actor_positions_x[j], m_actor_positions_y[j], m_actor_velocities_x[j], m_actors_velocities_y[j],
                                 radius
                             );
 
                             update_health_status(i, j);
-
-                            x1 = m_dod_pos_x[i];
-                            y1 = m_dod_pos_y[i];
                         }
                     }
                     else {
-                        FloatingObject* o1 = m_objects[i];
-                        FloatingObject* o2 = m_objects[j];
+                        Actor* o1 = m_actors[i];
+                        Actor* o2 = m_actors[j];
 
                         if (MathUtils::circles_overlap(o1->m_position.x, o1->m_position.y, o2->m_position.x, o2->m_position.y, radius))
                         {
@@ -449,9 +449,6 @@ void Game::optimized_resolve_collisions() {
                             );
 
                             update_health_status(i, j);
-
-                            x1 = o1->m_position.x;
-                            y1 = o1->m_position.y;
                         }
                     }
                 }
@@ -464,17 +461,17 @@ void Game::naive_resolve_collisions() {
     float radius = Constants::g_BALL_DIAMETER / 2;
 
     if (m_use_dod) {
-        for (int i = 0; i < m_dod_ids.size(); i++) {
-            float x1 = m_dod_pos_x[i];
-            float y1 = m_dod_pos_y[i];
-            float vx1 = m_dod_vel_x[i];
-            float vy1 = m_dod_vel_y[i];
+        for (int i = 0; i < m_actor_ids.size(); i++) {
+            float x1 = m_actor_positions_x[i];
+            float y1 = m_actor_positions_y[i];
+            float vx1 = m_actor_velocities_x[i];
+            float vy1 = m_actors_velocities_y[i];
 
-            for (int j = i + 1; j < m_dod_ids.size();  j++) {
-                float x2 = m_dod_pos_x[j];
-                float y2 = m_dod_pos_y[j];
-                float vx2 = m_dod_vel_x[j];
-                float vy2 = m_dod_vel_y[j];
+            for (int j = i + 1; j < m_actor_ids.size();  j++) {
+                float x2 = m_actor_positions_x[j];
+                float y2 = m_actor_positions_y[j];
+                float vx2 = m_actor_velocities_x[j];
+                float vy2 = m_actors_velocities_y[j];
 
                 if (MathUtils::circles_overlap(x1, y1, x2, y2, radius)) {
                     MathUtils::resolve_elastic_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
@@ -485,17 +482,17 @@ void Game::naive_resolve_collisions() {
         }
     }
     else {
-        for (int i = 0; i < m_objects.size(); i++) {
-            float& x1 = m_objects[i]->m_position.x;
-            float& y1 = m_objects[i]->m_position.y;
-            float& vx1 = m_objects[i]->m_velocity.x;
-            float& vy1 = m_objects[i]->m_velocity.y;
+        for (int i = 0; i < m_actors.size(); i++) {
+            float& x1 = m_actors[i]->m_position.x;
+            float& y1 = m_actors[i]->m_position.y;
+            float& vx1 = m_actors[i]->m_velocity.x;
+            float& vy1 = m_actors[i]->m_velocity.y;
 
-            for (int j = i + 1; j < m_dod_ids.size();  j++) {
-                float& x2 = m_objects[j]->m_position.x;
-                float& y2 = m_objects[j]->m_position.y;
-                float& vx2 = m_objects[j]->m_velocity.x;
-                float& vy2 = m_objects[j]->m_velocity.y;
+            for (int j = i + 1; j < m_actor_ids.size();  j++) {
+                float& x2 = m_actors[j]->m_position.x;
+                float& y2 = m_actors[j]->m_position.y;
+                float& vx2 = m_actors[j]->m_velocity.x;
+                float& vy2 = m_actors[j]->m_velocity.y;
 
                 if (MathUtils::circles_overlap(x1, y1, x2, y2, radius)) {
                     MathUtils::resolve_elastic_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
@@ -508,69 +505,70 @@ void Game::naive_resolve_collisions() {
 
 
 void Game::manage_entity_count() {
-    while (m_objects.size() < m_spawn_quantity) {
+    while (m_actors.size() < m_spawn_quantity) {
         int id = ++m_lastUsedId;
         int status;
         int chance = rand() % 100;
 
-        if (chance < 10) {
-            status = STATUS::DOCTOR;
+        if (chance < 10) { // 10% sansa sa am un doctor
+            status = ACTOR_TYPES::DOCTOR;
         }
         else {
+            // daca nu am doctor, generez random HEALTHY sau SICK
             status = (rand() % 2) + 1;
         }
 
-        FloatingObject* obj = new FloatingObject(state_textures, renderer, id, status);
-        m_objects.push_back(obj);
-        
-        m_dod_ids.push_back(id);
-        m_dod_pos_x.push_back(obj->m_position.x);
-        m_dod_pos_y.push_back(obj->m_position.y);
-        m_dod_vel_x.push_back(obj->m_velocity.x);
-        m_dod_vel_y.push_back(obj->m_velocity.y);
-        m_dod_status.push_back(status);
+        Actor* obj = new Actor(state_textures, renderer, id, status);
+        m_actors.push_back(obj);
+
+        m_actor_ids.push_back(id);
+        m_actor_positions_x.push_back(obj->m_position.x);
+        m_actor_positions_y.push_back(obj->m_position.y);
+        m_actor_velocities_x.push_back(obj->m_velocity.x);
+        m_actors_velocities_y.push_back(obj->m_velocity.y);
+        m_actor_types.push_back(status);
     }
 
-    while (m_objects.size() > m_spawn_quantity) {
-        delete m_objects.back();
-        m_objects.pop_back();
+    while (m_actors.size() > m_spawn_quantity) {
+        delete m_actors.back();
+        m_actors.pop_back();
 
-        m_dod_ids.pop_back();
-        m_dod_pos_x.pop_back();
-        m_dod_pos_y.pop_back();
-        m_dod_vel_x.pop_back();
-        m_dod_vel_y.pop_back();
-        m_dod_status.pop_back();
+        m_actor_ids.pop_back();
+        m_actor_positions_x.pop_back();
+        m_actor_positions_y.pop_back();
+        m_actor_velocities_x.pop_back();
+        m_actors_velocities_y.pop_back();
+        m_actor_types.pop_back();
     }
 }
 
 void Game::sync_state_to_dod() {
-    for (size_t i = 0; i < m_objects.size(); ++i) {
-        m_dod_pos_x[i] = m_objects[i]->m_position.x;
-        m_dod_pos_y[i] = m_objects[i]->m_position.y;
-        m_dod_vel_x[i] = m_objects[i]->m_velocity.x;
-        m_dod_vel_y[i] = m_objects[i]->m_velocity.y;
-        m_dod_status[i] = m_objects[i]->m_status;
+    for (size_t i = 0; i < m_actors.size(); ++i) {
+        m_actor_positions_x[i] = m_actors[i]->m_position.x;
+        m_actor_positions_y[i] = m_actors[i]->m_position.y;
+        m_actor_velocities_x[i] = m_actors[i]->m_velocity.x;
+        m_actors_velocities_y[i] = m_actors[i]->m_velocity.y;
+        m_actor_types[i] = m_actors[i]->m_status;
     }
 }
 
 void Game::sync_state_to_oop() {
-    for (size_t i = 0; i < m_objects.size(); ++i) {
-        m_objects[i]->m_position.x = m_dod_pos_x[i];
-        m_objects[i]->m_position.y = m_dod_pos_y[i];
-        m_objects[i]->m_velocity.x = m_dod_vel_x[i];
-        m_objects[i]->m_velocity.y = m_dod_vel_y[i];
-        m_objects[i]->m_status = m_dod_status[i];
+    for (size_t i = 0; i < m_actors.size(); ++i) {
+        m_actors[i]->m_position.x = m_actor_positions_x[i];
+        m_actors[i]->m_position.y = m_actor_positions_y[i];
+        m_actors[i]->m_velocity.x = m_actor_velocities_x[i];
+        m_actors[i]->m_velocity.y = m_actors_velocities_y[i];
+        m_actors[i]->m_status = m_actor_types[i];
     }
 }
 
 void Game::calculate_memory() {
-    oop_bytes = m_objects.capacity() * sizeof(FloatingObject*) + m_objects.size() * sizeof(FloatingObject);
-    dod_bytes = m_dod_ids.capacity() * sizeof(int) + (m_dod_pos_x.capacity() + m_dod_pos_y.capacity() + m_dod_vel_x.capacity() + m_dod_vel_y.capacity()) * sizeof(float);
+    oop_bytes = m_actors.capacity() * sizeof(Actor*) + m_actors.size() * sizeof(Actor);
+    dod_bytes = m_actor_ids.capacity() * sizeof(int) + (m_actor_positions_x.capacity() + m_actor_positions_y.capacity() + m_actor_velocities_x.capacity() + m_actors_velocities_y.capacity()) * sizeof(float);
     grid_bytes = m_grid.get_memory_usage();
 }
 
-void Game::update_imgui() 
+void Game::update_imgui()
 {
     ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
@@ -582,27 +580,28 @@ void Game::update_imgui()
     ImGui::Text("Update time: %.3f", m_updateTime);
     ImGui::Text("Render time: %.3f", m_renderTime);
 
+    // numar cati DOCTORS, HEALTHY, SICK, ... actori am
     std::vector<int> counters(NUMBER_OF_STATES);
     if (m_use_dod) {
-        for (int i = 0; i < m_dod_status.size(); i++) {
-            counters[m_dod_status[i]]++;
+        for (int i = 0; i < m_actor_types.size(); i++) {
+            counters[m_actor_types[i]]++;
         }
     }
     else {
-        for (int i = 0; i < m_objects.size(); i++) {
-            counters[m_objects[i]->m_status]++;
+        for (int i = 0; i < m_actors.size(); i++) {
+            counters[m_actors[i]->m_status]++;
         }
     }
 
     ImGui::Separator();
 
     ImGui::Text("Simulation data:");
-    ImGui::Text("Doctors: %d", counters[STATUS::DOCTOR]);
-    ImGui::Text("Healthy: %d", counters[STATUS::HEALTHY]);
-    ImGui::Text("Natural recovery: %d", counters[STATUS::NATURAL_RECOVERY]);
-    ImGui::Text("Vaccinated: %d", counters[STATUS::IMMUNIZED]);
-    ImGui::Text("Healed: %d", counters[STATUS::HEALED]);
-    ImGui::Text("Sick: %d", counters[STATUS::SICK]);
+    ImGui::Text("Doctors: %d", counters[ACTOR_TYPES::DOCTOR]);
+    ImGui::Text("Healthy: %d", counters[ACTOR_TYPES::HEALTHY]);
+    ImGui::Text("Natural recovery: %d", counters[ACTOR_TYPES::NATURAL_RECOVERY]);
+    ImGui::Text("Vaccinated: %d", counters[ACTOR_TYPES::IMMUNIZED]);
+    ImGui::Text("Healed: %d", counters[ACTOR_TYPES::HEALED]);
+    ImGui::Text("Sick: %d", counters[ACTOR_TYPES::SICK]);
 
     ImGui::Separator();
 
@@ -618,12 +617,16 @@ void Game::update_imgui()
     ImGui::SliderFloat("Simulation speed", &Constants::g_SIMULATION_SPEED, 0.0f, 10.0f);
 
     if (ImGui::RadioButton("OOP Mode", !m_use_dod)) {
-        if (m_use_dod) sync_state_to_oop();
+        if (m_use_dod) {
+            sync_state_to_oop();
+        }
         m_use_dod = false;
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("DOD Mode", m_use_dod)) {
-        if (!m_use_dod) sync_state_to_dod();
+        if (!m_use_dod) {
+            sync_state_to_dod();
+        }
         m_use_dod = true;
     }
 
@@ -634,6 +637,7 @@ void Game::update_imgui()
     ImGui::Separator();
     ImGui::Text("Grid cell size");
 
+    // 200 -> gcd rezolutie ecran (vreau celule care divid exact ecranul)
     std::vector divisors = {200, 50, 40, 25, 20, 10, 8, 5, 4, 2, 1};
 
     if (m_gridCellSize <= Constants::g_BALL_DIAMETER) {

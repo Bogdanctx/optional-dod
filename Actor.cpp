@@ -1,9 +1,9 @@
-#include "FloatingObject.h"
+#include "Actor.h"
 
 #include <utility>
 #include "constants.h"
 
-FloatingObject::FloatingObject(std::vector<SDL_Texture*> textures, SDL_Renderer *renderer, int id, int status)
+Actor::Actor(std::vector<SDL_Texture*> textures, SDL_Renderer *renderer, int id, int status)
     : m_textures(std::move(textures)), m_renderer(renderer), m_id(id), m_status(status)
 {
     m_radius = Constants::g_BALL_DIAMETER / 2.0f;
@@ -18,12 +18,12 @@ FloatingObject::FloatingObject(std::vector<SDL_Texture*> textures, SDL_Renderer 
     m_velocity = {cosf(radians) * m_speed, sinf(radians) * m_speed};
 }
 
-void FloatingObject::update(float deltaTime) {
+void Actor::update(float deltaTime) {
     m_position.x += m_velocity.x * deltaTime;
     m_position.y += m_velocity.y * deltaTime;
 }
 
-void FloatingObject::render() {
+void Actor::render() {
     SDL_FRect destRect = {
         m_position.x - m_radius,
         m_position.y - m_radius,

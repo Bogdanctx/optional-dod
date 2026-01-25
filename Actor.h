@@ -2,11 +2,11 @@
 #include <SDL3/SDL.h>
 #include <random>
 #include <cmath>
-#include "status.h"
+#include "actor_type.h"
 
-class FloatingObject {
+class Actor {
 public:
-    FloatingObject(std::vector<SDL_Texture*> texture, SDL_Renderer *renderer, int id, int status);
+    Actor(std::vector<SDL_Texture*> texture, SDL_Renderer *renderer, int id, int status);
 
     int m_id;
     SDL_FPoint m_position = { 0, 0 };

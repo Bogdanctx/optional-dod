@@ -34,7 +34,7 @@ target_link_libraries(imgui PRIVATE SDL3::SDL3)
 add_executable(${PROJECT_NAME} WIN32
         main.cpp
         Game.cpp
-        FloatingObject.cpp
+        Actor.cpp
         SpatialGrid.cpp
         Chronometer.cpp
 )
