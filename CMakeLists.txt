@@ -12,7 +12,7 @@ set(SDLTTF_HARFBUZZ OFF)
 
 add_subdirectory(vendored/SDL3-3.4.0 EXCLUDE_FROM_ALL)
 add_subdirectory(vendored/SDL3_ttf-3.2.2 EXCLUDE_FROM_ALL)
-add_subdirectory(vendored/SDL3_image-3.2.6 EXCLUDE_FROM_ALL)
+add_subdirectory(vendored/SDL3_image-3.4.0 EXCLUDE_FROM_ALL)
 
 ### init imgui
 add_library(imgui

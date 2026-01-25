@@ -1,3 +1,2 @@
-./vendored
-./cmake-build-debug
-./idea
+/vendored
+cmake-build-debug

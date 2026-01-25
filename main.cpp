@@ -2,7 +2,6 @@
 #include <random>
 #include <ctime>
 #include "constants.h"
-#include "imgui.h"
 
 int Constants::g_WINDOW_WIDTH = 1600;
 int Constants::g_WINDOW_HEIGHT = 1000;
