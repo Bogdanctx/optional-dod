@@ -163,11 +163,13 @@ void Game::update(float deltaTime) {
     check_screen_bounds();
     calculate_memory();
 
+    float severity = m_virusSeverity / 100.0f;
+    float recovery_chance = 0.0005f * (1.0f - severity);
     if (m_use_dod) {
         for (int i = 0; i < m_actor_types.size(); i++) {
             if (m_actor_types[i] == ACTOR_TYPES::SICK) {
-                if (rand() % 10000 < 1) {
-                    m_actor_types[i] = ACTOR_TYPES::NATURAL_RECOVERY; // 0.0001% sansa autovindecare
+                if ((float)rand() / RAND_MAX < recovery_chance) {
+                    m_actor_types[i] = ACTOR_TYPES::NATURAL_RECOVERY;
                 }
             }
         }
@@ -175,8 +177,8 @@ void Game::update(float deltaTime) {
     else {
         for (int i = 0; i < m_actors.size(); i++) {
             if (m_actors[i]->m_status == ACTOR_TYPES::SICK) {
-                if (rand() % 1000 < 1) {
-                    m_actors[i]->m_status = ACTOR_TYPES::NATURAL_RECOVERY; // 0.001% sansa autovindecare
+                if ((float)rand() / RAND_MAX < recovery_chance) {
+                    m_actors[i]->m_status = ACTOR_TYPES::NATURAL_RECOVERY;
                 }
             }
         }
@@ -289,10 +291,21 @@ void Game::check_screen_bounds() {
     }
 }
 
+
+
 void Game::update_health_status(int i, int j) {
-    int odd = rand() % 100; // generez o sansa
+    float severity = m_virusSeverity / 100.0f;
+
+    float transmission_chance = 0.01f + severity * 0.30f; // 1% - 30%
+    float doctor_infection_chance = severity * 0.10f; // 0% - 10%
+    float reinfection_chance = severity * 0.20f; // 0% - 20%
+    float healing_chance = 0.9f * (1.0f - severity);
+
+    // generez o sansa in intervalul [0, 1]
+    float chance = (float)rand() / RAND_MAX; // RAND_MAX = 2147483647
 
     if (m_use_dod) {
+        // grupurile imunizate sunt ignorate
         if (m_actor_types[i] == ACTOR_TYPES::NATURAL_RECOVERY || m_actor_types[j] == ACTOR_TYPES::NATURAL_RECOVERY) {
             return;
         }
@@ -300,38 +313,44 @@ void Game::update_health_status(int i, int j) {
             return;
         }
 
-        // coliziune SICK cu DOCTOR
+        // SICK vs DOCTOR -> SICK se transforma in HEALED (poate fi reinfectat)
         if ((m_actor_types[i] == ACTOR_TYPES::DOCTOR && m_actor_types[j] == ACTOR_TYPES::SICK) ||
             (m_actor_types[i] == ACTOR_TYPES::SICK && m_actor_types[j] == ACTOR_TYPES::DOCTOR))
         {
             int doctor_idx = (m_actor_types[i] == ACTOR_TYPES::DOCTOR) ? i : j;
             int sick_idx = (m_actor_types[i] == ACTOR_TYPES::SICK) ? i : j;
 
-            if (odd < 1) {
-                // 1% se imbolnaveste doctorul
+            if (chance < doctor_infection_chance) {
                 m_actor_types[doctor_idx] = ACTOR_TYPES::SICK;
             }
-            else if (odd < 86) {
-                // 85% sick este tratat
+            else if (chance < healing_chance) {
                 m_actor_types[sick_idx] = ACTOR_TYPES::HEALED;
             }
         }
-        // coliziune HEALTHY cu DOCTOR
+        // HEALTHY vs DOCTOR -> HEALTHY se transforma in IMMUNIZED (vaccinat)
         else if ((m_actor_types[i] == ACTOR_TYPES::DOCTOR && m_actor_types[j] == ACTOR_TYPES::HEALTHY) ||
                  (m_actor_types[i] == ACTOR_TYPES::HEALTHY && m_actor_types[j] == ACTOR_TYPES::DOCTOR))
         {
             int healthy_idx = (m_actor_types[i] == ACTOR_TYPES::HEALTHY) ? i : j;
-            m_actor_types[healthy_idx] = ACTOR_TYPES::IMMUNIZED; // se imunizeaza actorul HEALTHY
+            m_actor_types[healthy_idx] = ACTOR_TYPES::IMMUNIZED;
         }
-        // coliziune HEALTHY cu SICK
+        // HEALTHY vs SICK -> HEALTHY se imbolnaveste
         else if ((m_actor_types[i] == ACTOR_TYPES::SICK && m_actor_types[j] == ACTOR_TYPES::HEALTHY) ||
                  (m_actor_types[i] == ACTOR_TYPES::HEALTHY && m_actor_types[j] == ACTOR_TYPES::SICK))
         {
             int healthy_idx = (m_actor_types[i] == ACTOR_TYPES::HEALTHY) ? i : j;
-
-            if (odd < 80) {
-                // 80% actorul HEALTHY se imbolnaveste
+            if (chance < transmission_chance) {
                 m_actor_types[healthy_idx] = ACTOR_TYPES::SICK;
+            }
+        }
+        // HEALED vs SICK -> in functie de severitatea virusului HEALED poate fi iar SICK
+        else if ((m_actor_types[i] == ACTOR_TYPES::SICK && m_actor_types[j] == ACTOR_TYPES::HEALED) ||
+                 (m_actor_types[i] == ACTOR_TYPES::HEALED && m_actor_types[j] == ACTOR_TYPES::SICK))
+        {
+            int healed_idx = (m_actor_types[i] == ACTOR_TYPES::HEALED) ? i : j;
+
+            if (chance < reinfection_chance) {
+                m_actor_types[healed_idx] = ACTOR_TYPES::SICK;
             }
         }
     }
@@ -339,45 +358,48 @@ void Game::update_health_status(int i, int j) {
         Actor* obj1 = m_actors[i];
         Actor* obj2 = m_actors[j];
 
-        if (obj1->m_status == ACTOR_TYPES::NATURAL_RECOVERY || obj2->m_status == ACTOR_TYPES::NATURAL_RECOVERY) {
-            return;
-        }
-        if (obj1->m_status == ACTOR_TYPES::IMMUNIZED || obj2->m_status == ACTOR_TYPES::IMMUNIZED) {
-            return;
-        }
+        // grupurile imunizate sunt ignorate
+        if (obj1->m_status == ACTOR_TYPES::NATURAL_RECOVERY || obj2->m_status == ACTOR_TYPES::NATURAL_RECOVERY) return;
+        if (obj1->m_status == ACTOR_TYPES::IMMUNIZED || obj2->m_status == ACTOR_TYPES::IMMUNIZED) return;
 
-        // coliziune SICK cu DOCTOR
+        // SICK vs DOCTOR -> SICK se transforma in HEALED (poate fi reinfectat)
         if ((obj1->m_status == ACTOR_TYPES::DOCTOR && obj2->m_status == ACTOR_TYPES::SICK) ||
             (obj1->m_status == ACTOR_TYPES::SICK && obj2->m_status == ACTOR_TYPES::DOCTOR))
         {
             Actor* doctor = (obj1->m_status == ACTOR_TYPES::DOCTOR) ? obj1 : obj2;
             Actor* sick = (obj1->m_status == ACTOR_TYPES::SICK) ? obj1 : obj2;
 
-            if (odd < 1) {
-                // 1% se imbolnaveste doctorul
+            if (chance < doctor_infection_chance) {
                 doctor->m_status = ACTOR_TYPES::SICK;
             }
-            else if (odd < 86) {
-                // 85% sick este tratat
+            else if (chance < healing_chance) {
                 sick->m_status = ACTOR_TYPES::HEALED;
             }
         }
-        // coliziune HEALTHY cu DOCTOR
+        // HEALTHY vs DOCTOR -> HEALTHY se transforma in IMMUNIZED (vaccinat)
         else if ((obj1->m_status == ACTOR_TYPES::DOCTOR && obj2->m_status == ACTOR_TYPES::HEALTHY) ||
                  (obj1->m_status == ACTOR_TYPES::HEALTHY && obj2->m_status == ACTOR_TYPES::DOCTOR))
         {
             Actor* healthy = (obj1->m_status == ACTOR_TYPES::HEALTHY) ? obj1 : obj2;
             healthy->m_status = ACTOR_TYPES::IMMUNIZED;
         }
-        // coliziune HEALTHY cu SICK
+        // HEALTHY vs SICK -> HEALTHY se imbolnaveste
         else if ((obj1->m_status == ACTOR_TYPES::SICK && obj2->m_status == ACTOR_TYPES::HEALTHY) ||
                  (obj1->m_status == ACTOR_TYPES::HEALTHY && obj2->m_status == ACTOR_TYPES::SICK))
         {
             Actor* healthy = (obj1->m_status == ACTOR_TYPES::HEALTHY) ? obj1 : obj2;
-
-            if (odd < 80) {
-                // 80% actorul HEALTHY se imbolnaveste
+            if (chance < transmission_chance) {
                 healthy->m_status = ACTOR_TYPES::SICK;
+            }
+        }
+        // HEALED vs SICK -> in functie de severitatea virusului HEALED poate fi iar SICK
+        else if ((obj1->m_status == ACTOR_TYPES::SICK && obj2->m_status == ACTOR_TYPES::HEALED) ||
+                 (obj1->m_status == ACTOR_TYPES::HEALED && obj2->m_status == ACTOR_TYPES::SICK))
+        {
+            Actor* healed = (obj1->m_status == ACTOR_TYPES::HEALED) ? obj1 : obj2;
+
+            if (chance < reinfection_chance) {
+                healed->m_status = ACTOR_TYPES::SICK;
             }
         }
     }
@@ -508,9 +530,9 @@ void Game::manage_entity_count() {
     while (m_actors.size() < m_spawn_quantity) {
         int id = ++m_lastUsedId;
         int status;
-        int chance = rand() % 100;
+        float chance = (float)rand() / RAND_MAX;
 
-        if (chance < 10) { // 10% sansa sa am un doctor
+        if (chance < 0.15) { // 15% sansa sa am un doctor
             status = ACTOR_TYPES::DOCTOR;
         }
         else {
@@ -596,12 +618,12 @@ void Game::update_imgui()
     ImGui::Separator();
 
     ImGui::Text("Simulation data:");
-    ImGui::Text("Doctors: %d", counters[ACTOR_TYPES::DOCTOR]);
-    ImGui::Text("Healthy: %d", counters[ACTOR_TYPES::HEALTHY]);
-    ImGui::Text("Natural recovery: %d", counters[ACTOR_TYPES::NATURAL_RECOVERY]);
-    ImGui::Text("Vaccinated: %d", counters[ACTOR_TYPES::IMMUNIZED]);
-    ImGui::Text("Healed: %d", counters[ACTOR_TYPES::HEALED]);
-    ImGui::Text("Sick: %d", counters[ACTOR_TYPES::SICK]);
+    ImGui::Text("[White] Doctors: %d", counters[ACTOR_TYPES::DOCTOR]);
+    ImGui::Text("[Green] Healthy: %d", counters[ACTOR_TYPES::HEALTHY]);
+    ImGui::Text("[Yellow] Natural recovery: %d", counters[ACTOR_TYPES::NATURAL_RECOVERY]);
+    ImGui::Text("[Pink] Vaccinated: %d", counters[ACTOR_TYPES::IMMUNIZED]);
+    ImGui::Text("[Cyan] Healed: %d", counters[ACTOR_TYPES::HEALED]);
+    ImGui::Text("[Red] Sick: %d", counters[ACTOR_TYPES::SICK]);
 
     ImGui::Separator();
 
@@ -615,6 +637,7 @@ void Game::update_imgui()
     ImGui::SliderInt("Entities", &m_spawn_quantity, 0, MAX_ENTITIES);
     ImGui::SliderInt("Balls diameter", &Constants::g_BALL_DIAMETER, 1, 50);
     ImGui::SliderFloat("Simulation speed", &Constants::g_SIMULATION_SPEED, 0.0f, 10.0f);
+    ImGui::SliderFloat("Virus Severity", &m_virusSeverity, 0.0f, 100.0f, "%.1f %%");
 
     if (ImGui::RadioButton("OOP Mode", !m_use_dod)) {
         if (m_use_dod) {

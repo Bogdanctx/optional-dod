@@ -61,7 +61,7 @@ std::vector<int> SpatialGrid::get_cell(int col, int row) {
     return m_cells[row * m_cols + col];
 }
 
-size_t SpatialGrid::get_memory_usage() const {
+long long int SpatialGrid::get_memory_usage() const {
     long long int total = 0;
 
     total += sizeof(m_cells);

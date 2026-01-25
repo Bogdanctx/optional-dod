@@ -50,7 +50,9 @@ private:
     bool m_apply_collisions = true;
     bool m_optimizedCollisions = true;
     bool m_drawGrid = false;
-    
+
+    float m_virusSeverity = 50.0f;
+
     // date pt a masura performanta
     float m_fps = 0;
     float m_processInputTime = 0;

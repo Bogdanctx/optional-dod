@@ -12,7 +12,7 @@ public:
     std::vector<int> get_cell(int col, int row); // getter pt celula corespunzatoare pozitiei (x,y)
     void resize(int width, int height, int cellSize);
     int get_cell_size() const { return m_cellSize; }
-    size_t get_memory_usage() const;
+    long long int get_memory_usage() const;
 
 private:
     int m_width;
