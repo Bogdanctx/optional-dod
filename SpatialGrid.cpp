@@ -3,9 +3,6 @@
 SpatialGrid::SpatialGrid(int width, int height, int cellSize)
     : m_width(width), m_height(height), m_cellSize(cellSize)
 {
-    // m_cols = (int)ceil((float)m_width / m_cellSize);
-    // m_rows = (int)ceil((float)m_height / m_cellSize);
-
     m_cols = m_width / m_cellSize;
     m_rows = m_height / m_cellSize;
 
@@ -16,9 +13,6 @@ void SpatialGrid::resize(int width, int height, int cellSize) {
     m_width = width;
     m_height = height;
     m_cellSize = cellSize;
-
-    // m_cols = (int)ceil((float)m_width / m_cellSize);
-    // m_rows = (int)ceil((float)m_height / m_cellSize);
 
     m_cols = m_width / m_cellSize;
     m_rows = m_height / m_cellSize;

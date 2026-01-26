@@ -232,7 +232,7 @@ void Game::render() {
 }
 
 void Game::apply_physics(float deltaTime) {
-    deltaTime *= Constants::g_SIMULATION_SPEED;
+    deltaTime *= Constants::g_MOVEMENT_SPEED;
 
     if (m_use_dod) {
         for(int i = 0; i < m_actor_ids.size(); i++) {
@@ -296,7 +296,7 @@ void Game::check_screen_bounds() {
 void Game::update_health_status(int i, int j) {
     float severity = m_virusSeverity / 100.0f;
 
-    float transmission_chance = 0.01f + severity * 0.30f; // 1% - 30%
+    float transmission_chance = 0.01f + severity * 0.60f; // 1% - 60%
     float doctor_infection_chance = severity * 0.10f; // 0% - 10%
     float reinfection_chance = severity * 0.20f; // 0% - 20%
     float healing_chance = 0.9f * (1.0f - severity);
@@ -449,7 +449,7 @@ void Game::optimized_resolve_collisions() {
                     {
                         if (MathUtils::circles_overlap(m_actor_positions_x[i], m_actor_positions_y[i], m_actor_positions_x[j], m_actor_positions_y[j], radius))
                         {
-                            MathUtils::resolve_elastic_collision(
+                            MathUtils::resolve_collision(
                                 m_actor_positions_x[i], m_actor_positions_y[i], m_actor_velocities_x[i], m_actors_velocities_y[i],
                                 m_actor_positions_x[j], m_actor_positions_y[j], m_actor_velocities_x[j], m_actors_velocities_y[j],
                                 radius
@@ -464,7 +464,7 @@ void Game::optimized_resolve_collisions() {
 
                         if (MathUtils::circles_overlap(o1->m_position.x, o1->m_position.y, o2->m_position.x, o2->m_position.y, radius))
                         {
-                            MathUtils::resolve_elastic_collision(
+                            MathUtils::resolve_collision(
                                 o1->m_position.x, o1->m_position.y, o1->m_velocity.x, o1->m_velocity.y,
                                 o2->m_position.x, o2->m_position.y, o2->m_velocity.x, o2->m_velocity.y,
                                 radius
@@ -496,7 +496,7 @@ void Game::naive_resolve_collisions() {
                 float vy2 = m_actors_velocities_y[j];
 
                 if (MathUtils::circles_overlap(x1, y1, x2, y2, radius)) {
-                    MathUtils::resolve_elastic_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
+                    MathUtils::resolve_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
 
                     update_health_status(i, j);
                 }
@@ -517,7 +517,7 @@ void Game::naive_resolve_collisions() {
                 float& vy2 = m_actors[j]->m_velocity.y;
 
                 if (MathUtils::circles_overlap(x1, y1, x2, y2, radius)) {
-                    MathUtils::resolve_elastic_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
+                    MathUtils::resolve_collision(x1, y1, vx1, vy1, x2, y2, vx2, vy2, radius);
                     update_health_status(i, j);
                 }
             }
@@ -636,7 +636,7 @@ void Game::update_imgui()
     ImGui::Separator();
     ImGui::SliderInt("Entities", &m_spawn_quantity, 0, MAX_ENTITIES);
     ImGui::SliderInt("Balls diameter", &Constants::g_BALL_DIAMETER, 1, 50);
-    ImGui::SliderFloat("Simulation speed", &Constants::g_SIMULATION_SPEED, 0.0f, 10.0f);
+    ImGui::SliderFloat("Movement speed", &Constants::g_MOVEMENT_SPEED, 0.0f, 10.0f);
     ImGui::SliderFloat("Virus Severity", &m_virusSeverity, 0.0f, 100.0f, "%.1f %%");
 
     if (ImGui::RadioButton("OOP Mode", !m_use_dod)) {

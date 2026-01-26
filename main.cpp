@@ -6,7 +6,7 @@
 int Constants::g_WINDOW_WIDTH = 1600;
 int Constants::g_WINDOW_HEIGHT = 1000;
 int Constants::g_BALL_DIAMETER = 4;
-float Constants::g_SIMULATION_SPEED = 1.0f;
+float Constants::g_MOVEMENT_SPEED = 1.0f;
 
 int main() {
     srand(time(nullptr));

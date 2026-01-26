@@ -9,7 +9,7 @@ struct Constants {
     static int g_WINDOW_WIDTH;
     static int g_WINDOW_HEIGHT;
     static int g_BALL_DIAMETER;
-    static float g_SIMULATION_SPEED;
+    static float g_MOVEMENT_SPEED;
 };
 
 #endif //DOD_CONSTANTS_H
